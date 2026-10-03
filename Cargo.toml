@@ -1,0 +1,82 @@
+[workspace]
+resolver = "3"
+members = ["."]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+# What quire declares; the toolchain itself is pinned in rust-toolchain.toml.
+rust-version = "1.92"
+repository = "https://github.com/PoHsuanLai/casement-protocols"
+publish = false
+
+[workspace.dependencies]
+# From quire's pinned block (`docs/workspace-deps.toml`), copied verbatim: only the lines this
+# repo names itself.
+wayland-client = "0.31"
+wayland-backend = { version = "0.3", features = ["client_system"] }
+wayland-protocols = { version = "0.32.13", features = ["client", "staging", "unstable"] }
+thiserror = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# NOT in quire's pinned block (FINDINGS: dependencies added here). wayland-scanner and
+# wayland-server are cua's lines: the generator and the server side, both already in every tree
+# through wayland-protocols and wayland-client. bitflags is what wayland-scanner's generated
+# code names for a bitfield enum (`mac_mods`); the major wayland-client resolves. quick-xml is
+# the parser wayland-scanner itself uses, at its minor, for the XML introspection tests.
+wayland-scanner = "0.31"
+wayland-server = "0.31"
+bitflags = "2"
+quick-xml = "0.41"
+
+[workspace.lints.rust]
+unsafe_code = "deny"
+missing_debug_implementations = "warn"
+
+[package]
+name = "casement-protocols"
+description = "The desktop's private Wayland protocols (quire_*_v1): the XML, the pure wire vocabulary, and wayland-scanner bindings behind the `client` and `server` features."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]
+serde = { workspace = true }
+thiserror = { workspace = true }
+wayland-scanner = { workspace = true, optional = true }
+wayland-backend = { workspace = true, optional = true }
+wayland-client = { workspace = true, optional = true }
+wayland-server = { workspace = true, optional = true }
+wayland-protocols = { workspace = true, optional = true }
+bitflags = { workspace = true, optional = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }
+quick-xml = { workspace = true }
+
+[features]
+default = []
+# The clients' side: sill, shell-host, cua, transom, quire's ds-blitz.
+client = [
+  "dep:wayland-client",
+  "dep:wayland-backend",
+  "dep:wayland-scanner",
+  "dep:bitflags",
+  "wayland-protocols/client",
+]
+# The compositor's side: casement.
+server = [
+  "dep:wayland-server",
+  "dep:wayland-backend",
+  "dep:wayland-scanner",
+  "dep:bitflags",
+  "wayland-protocols/server",
+]
+
+[lints]
+workspace = true
