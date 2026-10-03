@@ -1,0 +1,263 @@
+//! The frozen interface, as tables: every message of every interface, every error enum, and
+//! the interfaces of other protocols the six name.
+
+/// Every interface: (protocol file, interface, requests in opcode order, events in opcode
+/// order).
+pub const INTERFACES: &[(&str, &str, &[&str], &[&str])] = &[
+    (
+        "quire-desktop-v1.xml",
+        "quire_desktop_manager_v1",
+        &[
+            "get_window_for(id: new_id quire_desktop_window_v1, toplevel: ext_foreign_toplevel_handle_v1)",
+            "create_space(output: wl_output)",
+            "stop()",
+            "destroy() [destructor]",
+        ],
+        &[
+            "app(id: new_id quire_desktop_app_v1)",
+            "window(id: new_id quire_desktop_window_v1)",
+            "space(id: new_id quire_desktop_space_v1)",
+            "active(app: quire_desktop_app_v1?, key: quire_desktop_window_v1?, actor: uint<actor_kind>)",
+            "done()",
+            "finished()",
+        ],
+    ),
+    (
+        "quire-desktop-v1.xml",
+        "quire_desktop_app_v1",
+        &[
+            "activate(seat: wl_seat, serial: uint)",
+            "hide()",
+            "unhide()",
+            "hide_others()",
+            "quit()",
+            "force_quit()",
+            "reopen()",
+            "destroy() [destructor]",
+        ],
+        &[
+            "identity(key: string, proof: uint<proof_kind>, claimed_id: string)",
+            "life(state: uint<app_life_kind>)",
+            "visibility(state: uint<app_visibility>)",
+            "menu_source(kind: uint<menu_source_kind>, bus: string, app_path: string, menubar_path: string)",
+            "attention(level: uint<attention>)",
+            "mru(rank: uint)",
+            "done()",
+            "closed()",
+        ],
+    ),
+    (
+        "quire-desktop-v1.xml",
+        "quire_desktop_window_v1",
+        &[
+            "activate(seat: wl_seat, serial: uint)",
+            "close()",
+            "minimise()",
+            "unminimise()",
+            "place(target: uint<quire_window_v1.place_target>)",
+            "full_screen(toggle: uint<toggle>)",
+            "to_space(space: quire_desktop_space_v1)",
+            "assign(assign: uint<assign>)",
+            "destroy() [destructor]",
+        ],
+        &[
+            "identifier(identifier: string)",
+            "app(app: quire_desktop_app_v1)",
+            "role(role: uint<quire_window_v1.window_role>, modality: uint<modality>)",
+            "state(kind: uint<window_state_kind>, actor: uint<quire_desktop_manager_v1.actor_kind>)",
+            "place(kind: uint<place_kind>, space: quire_desktop_space_v1?)",
+            "output(output: wl_output)",
+            "geometry(x: int, y: int, width: uint, height: uint, scale120: uint)",
+            "parent(parent: quire_desktop_window_v1?)",
+            "emphasis(emphasis: uint<quire_window_v1.emphasis>)",
+            "sensitivity(level: uint<quire_sensitive_surface_v1.sensitivity_level>)",
+            "lease(state: uint<lease_state>, glow: uint<quire_agent_lease_v1.glow_state>)",
+            "responsiveness(state: uint<responsiveness>)",
+            "placement(mark: uint<quire_window_v1.placement_mark>)",
+            "menu_path(path: string)",
+            "done()",
+            "closed()",
+        ],
+    ),
+    (
+        "quire-desktop-v1.xml",
+        "quire_desktop_space_v1",
+        &[
+            "activate()",
+            "remove()",
+            "move_to(position: uint)",
+            "destroy() [destructor]",
+        ],
+        &[
+            "id(space_id: string)",
+            "kind(kind: uint<space_kind>)",
+            "occupant(token: string)",
+            "position(index: uint)",
+            "output(output: wl_output)",
+            "activity(activity: uint<space_activity>)",
+            "done()",
+            "removed()",
+        ],
+    ),
+    (
+        "quire-shell-v1.xml",
+        "quire_shell_v1",
+        &[
+            "set_role(surface: wl_surface, role: uint<shell_role>)",
+            "set_minimise_target(dock: wl_surface, toplevel: string, x: int, y: int, width: uint, height: uint)",
+            "clear_minimise_target(toplevel: string)",
+            "switcher_pick(index: uint)",
+            "switcher_cancel()",
+            "overview(mode: uint<overview_mode>, toggle: uint<quire_desktop_window_v1.toggle>)",
+            "show_desktop(toggle: uint<quire_desktop_window_v1.toggle>)",
+            "destroy() [destructor]",
+        ],
+        &[
+            "modifiers(surface: wl_surface, mods: uint<mac_mods>)",
+            "key_gesture(gesture: uint<key_gesture>)",
+            "switcher_app(index: uint, app_key: string)",
+            "switcher_shown(selected: uint)",
+            "switcher_selected(index: uint)",
+            "switcher_hidden()",
+            "overview_state(mode: uint<overview_mode>, state: uint<overview_state>, progress: uint)",
+            "overview_slot(toplevel: string, x: int, y: int, width: uint, height: uint)",
+            "overview_space(space_id: string, x: int, y: int, width: uint, height: uint)",
+            "overview_done()",
+            "hot_corner(corner: uint<corner>)",
+            "reveal(edge: uint<screen_edge>, shown: uint<shown>)",
+            "menu_flash(app_key: string, item: uint)",
+            "bell(app_key: string)",
+            "reopen(app_key: string)",
+            "killed()",
+        ],
+    ),
+    (
+        "quire-window-v1.xml",
+        "quire_window_manager_v1",
+        &[
+            "get_window(id: new_id quire_window_v1, toplevel: xdg_toplevel)",
+            "destroy() [destructor]",
+        ],
+        &[],
+    ),
+    (
+        "quire-window-v1.xml",
+        "quire_window_v1",
+        &[
+            "set_first_mouse(region: wl_region?)",
+            "set_frame(mode: uint<frame_mode>, corner_radius: uint)",
+            "request_placement(target: uint<place_target>, serial: uint)",
+            "set_role(role: uint<window_role>)",
+            "set_a11y_root(bus_name: string, object_path: string)",
+            "set_edited(edited: uint<edited>)",
+            "destroy() [destructor]",
+        ],
+        &[
+            "emphasis(emphasis: uint<emphasis>)",
+            "placement(mark: uint<placement_mark>)",
+        ],
+    ),
+    (
+        "quire-sensitive-v1.xml",
+        "quire_sensitive_manager_v1",
+        &[
+            "get_sensitive(id: new_id quire_sensitive_surface_v1, surface: wl_surface)",
+            "destroy() [destructor]",
+        ],
+        &[],
+    ),
+    (
+        "quire-sensitive-v1.xml",
+        "quire_sensitive_surface_v1",
+        &[
+            "set_whole(level: uint<sensitivity_level>)",
+            "set_regions(region: wl_region, level: uint<sensitivity_level>)",
+            "clear()",
+            "destroy() [destructor]",
+        ],
+        &[],
+    ),
+    (
+        "quire-agent-v1.xml",
+        "quire_agent_manager_v1",
+        &[
+            "create_lease(id: new_id quire_agent_lease_v1, toplevel: ext_foreign_toplevel_handle_v1, mode: uint<lease_mode>)",
+            "destroy() [destructor]",
+        ],
+        &[],
+    ),
+    (
+        "quire-agent-v1.xml",
+        "quire_agent_lease_v1",
+        &[
+            "get_capture_source(source: new_id ext_image_capture_source_v1)",
+            "set_mask_hints(hints: array)",
+            "set_glow(state: uint<glow_state>, x: int, y: int, width: uint, height: uint)",
+            "suspend(why: uint<suspend_reason>)",
+            "resume()",
+            "destroy() [destructor]",
+        ],
+        &[
+            "granted()",
+            "revoked(reason: uint<revoke_reason>)",
+            "ei_socket(fd: fd)",
+            "physical_input()",
+            "geometry(width: uint, height: uint, scale120: uint)",
+        ],
+    ),
+    (
+        "quire-trusted-surface-v1.xml",
+        "quire_trusted_manager_v1",
+        &[
+            "get_trusted(id: new_id quire_trusted_surface_v1, surface: wl_surface, kind: uint<trusted_kind>, anchor: uint<trusted_anchor>, toplevel: string, arm_ms: uint)",
+            "destroy() [destructor]",
+        ],
+        &[],
+    ),
+    (
+        "quire-trusted-surface-v1.xml",
+        "quire_trusted_surface_v1",
+        &["destroy() [destructor]"],
+        &[
+            "presented()",
+            "armed()",
+            "answered_by_physical(serial: uint)",
+            "withdrawn(reason: uint<withdrawn>)",
+        ],
+    ),
+];
+
+/// Every error enum: (interface, entries in code order).
+pub const ERRORS: &[(&str, &[&str])] = &[
+    (
+        "quire_desktop_manager_v1",
+        &["not_permitted", "unknown_output"],
+    ),
+    (
+        "quire_shell_v1",
+        &["role_taken", "bad_surface", "unknown_toplevel"],
+    ),
+    ("quire_window_manager_v1", &["already_constructed"]),
+    ("quire_window_v1", &["defunct_toplevel", "bad_role"]),
+    ("quire_sensitive_manager_v1", &["already_constructed"]),
+    ("quire_sensitive_surface_v1", &["bad_level"]),
+    (
+        "quire_agent_manager_v1",
+        &["not_permitted", "bad_mode", "lease_held"],
+    ),
+    (
+        "quire_trusted_manager_v1",
+        &["role_taken", "unknown_toplevel"],
+    ),
+];
+
+/// Interfaces of other protocols the six name.
+pub const EXTERNAL: &[&str] = &[
+    "wl_output",
+    "wl_region",
+    "wl_seat",
+    "wl_surface",
+    "xdg_toplevel",
+    "ext_foreign_toplevel_handle_v1",
+    "ext_image_capture_source_v1",
+];
