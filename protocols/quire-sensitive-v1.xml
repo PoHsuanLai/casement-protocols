@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<protocol name="quire_sensitive_v1">
+  <copyright>
+    Copyright 2026 Po Hsuan Lai
+
+    Licensed under the MIT license or the Apache License, Version 2.0, at your option.
+
+    The MIT license:
+
+    Permission is hereby granted, free of charge, to any person obtaining a copy of this software
+    and associated documentation files (the "Software"), to deal in the Software without
+    restriction, including without limitation the rights to use, copy, modify, merge, publish,
+    distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the
+    Software is furnished to do so, subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all copies or
+    substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING
+    BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+    NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+    DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+  </copyright>
+
+  <description summary="surfaces and regions kept from agents and capture">
+    Any client may mark a surface, or regions of it, as sensitive. An `agent_hidden` region is
+    masked in every frame an agent lease captures; a `capture_hidden` region is masked in every
+    capture the compositor serves (screenshots, screencasts and agent leases alike). The person
+    still sees it on screen.
+
+    This protocol is a draft. Until it is declared stable, version 1 may change in place with
+    every client and the server updated together.
+  </description>
+
+  <interface name="quire_sensitive_manager_v1" version="1">
+    <description summary="marks surfaces sensitive">
+      Advertised on every connection.
+    </description>
+
+    <enum name="error">
+      <entry name="already_constructed" value="0"
+             summary="the surface already has a quire_sensitive_surface_v1 object"/>
+    </enum>
+
+    <request name="get_sensitive">
+      <description summary="the sensitivity object of a surface">
+        A surface has at most one; asking for a second while the first exists raises
+        `already_constructed`.
+      </description>
+      <arg name="id" type="new_id" interface="quire_sensitive_surface_v1"/>
+      <arg name="surface" type="object" interface="wl_surface"/>
+    </request>
+
+    <request name="destroy" type="destructor">
+      <description summary="destroy the manager">
+        Objects already created stay valid.
+      </description>
+    </request>
+  </interface>
+
+  <interface name="quire_sensitive_surface_v1" version="1">
+    <description summary="one surface's sensitivity">
+      All state is double-buffered and applied on the surface's next wl_surface.commit. A
+      surface without this object, or after `clear`, is `normal` everywhere. Destroying the
+      object clears its state on the next commit.
+    </description>
+
+    <enum name="error">
+      <entry name="bad_level" value="0" summary="normal given to set_regions"/>
+    </enum>
+
+    <enum name="sensitivity_level">
+      <description summary="who may not see the content"/>
+      <entry name="normal" value="0" summary="visible to every permitted capture"/>
+      <entry name="agent_hidden" value="1" summary="masked in agent captures"/>
+      <entry name="capture_hidden" value="2" summary="masked in every capture"/>
+    </enum>
+
+    <request name="set_whole">
+      <description summary="mark the whole surface">
+        The whole surface takes `level`; regions set earlier are dropped.
+      </description>
+      <arg name="level" type="uint" enum="sensitivity_level"/>
+    </request>
+
+    <request name="set_regions">
+      <description summary="mark regions of the surface">
+        Adds `region` (surface-local) at `level` to the regions already set. `normal` raises
+        `bad_level`: `clear` returns the surface to normal.
+      </description>
+      <arg name="region" type="object" interface="wl_region"/>
+      <arg name="level" type="uint" enum="sensitivity_level"/>
+    </request>
+
+    <request name="clear">
+      <description summary="return the surface to normal">
+        Drops the whole-surface level and every region.
+      </description>
+    </request>
+
+    <request name="destroy" type="destructor">
+      <description summary="destroy the object">
+        The surface returns to normal on its next commit.
+      </description>
+    </request>
+  </interface>
+</protocol>

@@ -1,0 +1,298 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<protocol name="quire_shell_v1">
+  <copyright>
+    Copyright 2026 Po Hsuan Lai
+
+    Licensed under the MIT license or the Apache License, Version 2.0, at your option.
+
+    The MIT license:
+
+    Permission is hereby granted, free of charge, to any person obtaining a copy of this software
+    and associated documentation files (the "Software"), to deal in the Software without
+    restriction, including without limitation the rights to use, copy, modify, merge, publish,
+    distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the
+    Software is furnished to do so, subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all copies or
+    substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING
+    BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+    NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+    DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+  </copyright>
+
+  <description summary="the desktop shell's surface roles and system events">
+    The desktop shell tells the compositor which of its surfaces is the bar, the dock, the
+    switcher and so on, and the compositor tells the shell about the events only it can see: the
+    real modifier keys, modifier gestures, the app switcher, Mission Control's layout, hot
+    corners, edge reveals and the kill chord.
+
+    Apps are named by their app key string and windows by their ext_foreign_toplevel_handle_v1
+    identifier string, because the shell binds this global on a different connection from the
+    one that holds its toplevel handles, and no Wayland object crosses connections.
+
+    This protocol is a draft. Until it is declared stable, version 1 may change in place with
+    every client and the server updated together.
+  </description>
+
+  <interface name="quire_shell_v1" version="1">
+    <description summary="the shell's global">
+      Advertised on Shell connections only.
+
+      Rectangles are in global logical pixels: the layout space all outputs share.
+    </description>
+
+    <enum name="error">
+      <entry name="role_taken" value="0" summary="another surface already has that role"/>
+      <entry name="bad_surface" value="1" summary="the surface is not a layer surface of this client"/>
+      <entry name="unknown_toplevel" value="2" summary="no toplevel has the given identifier"/>
+    </enum>
+
+    <enum name="shell_role">
+      <description summary="what a shell surface is">
+        The compositor uses roles for minimise targets (dock), full-screen reveal (bar and
+        dock), and keeps every shell surface out of agent capture.
+      </description>
+      <entry name="bar" value="0" summary="the menu bar"/>
+      <entry name="dock" value="1" summary="the dock"/>
+      <entry name="launcher" value="2" summary="the launcher"/>
+      <entry name="switcher" value="3" summary="the app switcher"/>
+      <entry name="overview" value="4" summary="Mission Control and App Exposé chrome"/>
+      <entry name="notifications" value="5" summary="notification banners and centre"/>
+      <entry name="osd" value="6" summary="on-screen displays"/>
+      <entry name="control_centre" value="7" summary="the control centre"/>
+      <entry name="wallpaper" value="8" summary="the desktop picture"/>
+      <entry name="widget" value="9" summary="desktop widgets"/>
+    </enum>
+
+    <enum name="mac_mods" bitfield="true">
+      <description summary="the modifier keys the person holds">
+        The keys as pressed, before any per-app remapping.
+      </description>
+      <entry name="none" value="0" summary="no modifier"/>
+      <entry name="shift" value="1" summary="Shift"/>
+      <entry name="control" value="2" summary="Control"/>
+      <entry name="option" value="4" summary="Option"/>
+      <entry name="command" value="8" summary="Command"/>
+      <entry name="caps_lock" value="16" summary="Caps Lock is on"/>
+      <entry name="function" value="32" summary="Fn"/>
+    </enum>
+
+    <enum name="key_gesture">
+      <description summary="a modifier gesture the compositor recognised"/>
+      <entry name="summon" value="0" summary="a double tap of Command"/>
+      <entry name="hold_start" value="1" summary="Command held alone past the hold time"/>
+      <entry name="hold_end" value="2" summary="the held Command was released"/>
+      <entry name="hold_cancel" value="3" summary="the hold became a chord"/>
+    </enum>
+
+    <enum name="overview_mode">
+      <description summary="which overview"/>
+      <entry name="mission_control" value="0" summary="every window of every app"/>
+      <entry name="app_expose" value="1" summary="the windows of the active app"/>
+      <entry name="desktop" value="2" summary="every window moved aside"/>
+    </enum>
+
+    <enum name="overview_state">
+      <description summary="where the overview is in its life"/>
+      <entry name="closed" value="0" summary="not shown"/>
+      <entry name="entering" value="1" summary="animating in"/>
+      <entry name="open" value="2" summary="shown"/>
+      <entry name="leaving" value="3" summary="animating out"/>
+      <entry name="tracking" value="4" summary="following a gesture"/>
+    </enum>
+
+    <enum name="corner">
+      <description summary="a screen corner"/>
+      <entry name="top_left" value="0" summary="top left"/>
+      <entry name="top_right" value="1" summary="top right"/>
+      <entry name="bottom_left" value="2" summary="bottom left"/>
+      <entry name="bottom_right" value="3" summary="bottom right"/>
+    </enum>
+
+    <enum name="screen_edge">
+      <description summary="a screen edge"/>
+      <entry name="top" value="0" summary="top"/>
+      <entry name="bottom" value="1" summary="bottom"/>
+      <entry name="left" value="2" summary="left"/>
+      <entry name="right" value="3" summary="right"/>
+    </enum>
+
+    <enum name="shown">
+      <description summary="whether something is on screen"/>
+      <entry name="hidden" value="0" summary="hidden"/>
+      <entry name="shown" value="1" summary="shown"/>
+    </enum>
+
+    <request name="set_role">
+      <description summary="give a shell surface its role">
+        `surface` must be a layer surface of this client; anything else raises `bad_surface`.
+        A role held by another live surface raises `role_taken`.
+      </description>
+      <arg name="surface" type="object" interface="wl_surface"/>
+      <arg name="role" type="uint" enum="shell_role"/>
+    </request>
+
+    <request name="set_minimise_target">
+      <description summary="where a window minimises to">
+        The rectangle, local to the dock surface, that the window named by `toplevel` shrinks
+        into when minimised. Replaces an earlier target for that window.
+      </description>
+      <arg name="dock" type="object" interface="wl_surface"/>
+      <arg name="toplevel" type="string" summary="ext-foreign-toplevel identifier"/>
+      <arg name="x" type="int"/>
+      <arg name="y" type="int"/>
+      <arg name="width" type="uint"/>
+      <arg name="height" type="uint"/>
+    </request>
+
+    <request name="clear_minimise_target">
+      <description summary="forget a window's minimise target"/>
+      <arg name="toplevel" type="string" summary="ext-foreign-toplevel identifier"/>
+    </request>
+
+    <request name="switcher_pick">
+      <description summary="the person picked an app in the switcher">
+        `index` is the position the compositor gave in `switcher_app`.
+      </description>
+      <arg name="index" type="uint"/>
+    </request>
+
+    <request name="switcher_cancel">
+      <description summary="the person dismissed the switcher"/>
+    </request>
+
+    <request name="overview">
+      <description summary="open or close an overview"/>
+      <arg name="mode" type="uint" enum="overview_mode"/>
+      <arg name="toggle" type="uint" enum="quire_desktop_window_v1.toggle"/>
+    </request>
+
+    <request name="show_desktop">
+      <description summary="move every window aside, or back"/>
+      <arg name="toggle" type="uint" enum="quire_desktop_window_v1.toggle"/>
+    </request>
+
+    <request name="destroy" type="destructor">
+      <description summary="destroy the object">
+        Shell surfaces keep their roles until they are destroyed.
+      </description>
+    </request>
+
+    <event name="modifiers">
+      <description summary="the modifiers held over a shell surface">
+        Sent while the pointer is over a shell surface of this client, on entry and on every
+        change.
+      </description>
+      <arg name="surface" type="object" interface="wl_surface"/>
+      <arg name="mods" type="uint" enum="mac_mods"/>
+    </event>
+
+    <event name="key_gesture">
+      <description summary="a modifier gesture happened"/>
+      <arg name="gesture" type="uint" enum="key_gesture"/>
+    </event>
+
+    <event name="switcher_app">
+      <description summary="one app in the switcher">
+        Sent for each app, in order, before `switcher_shown`.
+      </description>
+      <arg name="index" type="uint"/>
+      <arg name="app_key" type="string"/>
+    </event>
+
+    <event name="switcher_shown">
+      <description summary="the switcher appears">
+        The apps were sent as `switcher_app` just before.
+      </description>
+      <arg name="selected" type="uint" summary="index of the selected app"/>
+    </event>
+
+    <event name="switcher_selected">
+      <description summary="the selection moved"/>
+      <arg name="index" type="uint"/>
+    </event>
+
+    <event name="switcher_hidden">
+      <description summary="the switcher went away"/>
+    </event>
+
+    <event name="overview_state">
+      <description summary="the overview's state and progress">
+        `progress` is in thousandths: 0 closed, 1000 open.
+      </description>
+      <arg name="mode" type="uint" enum="overview_mode"/>
+      <arg name="state" type="uint" enum="overview_state"/>
+      <arg name="progress" type="uint" summary="thousandths"/>
+    </event>
+
+    <event name="overview_slot">
+      <description summary="where a window sits in the overview">
+        Sent for each window; the set is complete at `overview_done`.
+      </description>
+      <arg name="toplevel" type="string" summary="ext-foreign-toplevel identifier"/>
+      <arg name="x" type="int"/>
+      <arg name="y" type="int"/>
+      <arg name="width" type="uint"/>
+      <arg name="height" type="uint"/>
+    </event>
+
+    <event name="overview_space">
+      <description summary="where a Space thumbnail sits in the overview">
+        Sent for each Space; the set is complete at `overview_done`.
+      </description>
+      <arg name="space_id" type="string" summary="the Space's id"/>
+      <arg name="x" type="int"/>
+      <arg name="y" type="int"/>
+      <arg name="width" type="uint"/>
+      <arg name="height" type="uint"/>
+    </event>
+
+    <event name="overview_done">
+      <description summary="the overview layout is complete">
+        Ends a batch of `overview_slot` and `overview_space` events.
+      </description>
+    </event>
+
+    <event name="hot_corner">
+      <description summary="the pointer triggered a hot corner"/>
+      <arg name="corner" type="uint" enum="corner"/>
+    </event>
+
+    <event name="reveal">
+      <description summary="an edge reveal changed">
+        In full screen, the bar or the dock slides in from its edge, or away.
+      </description>
+      <arg name="edge" type="uint" enum="screen_edge"/>
+      <arg name="shown" type="uint" enum="shown"/>
+    </event>
+
+    <event name="menu_flash">
+      <description summary="flash a menu title">
+        A key equivalent of the app ran the menu item at `item`; the bar flashes its menu.
+      </description>
+      <arg name="app_key" type="string"/>
+      <arg name="item" type="uint" summary="index of the top-level menu"/>
+    </event>
+
+    <event name="bell">
+      <description summary="an app rang the bell"/>
+      <arg name="app_key" type="string"/>
+    </event>
+
+    <event name="reopen">
+      <description summary="an app was activated with no windows">
+        The shell decides what reopening means for that app.
+      </description>
+      <arg name="app_key" type="string"/>
+    </event>
+
+    <event name="killed">
+      <description summary="the kill chord was pressed">
+        Every agent lease has ended.
+      </description>
+    </event>
+  </interface>
+</protocol>

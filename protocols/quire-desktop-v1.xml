@@ -1,0 +1,571 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<protocol name="quire_desktop_v1">
+  <copyright>
+    Copyright 2026 Po Hsuan Lai
+
+    Licensed under the MIT license or the Apache License, Version 2.0, at your option.
+
+    The MIT license:
+
+    Permission is hereby granted, free of charge, to any person obtaining a copy of this software
+    and associated documentation files (the "Software"), to deal in the Software without
+    restriction, including without limitation the rights to use, copy, modify, merge, publish,
+    distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the
+    Software is furnished to do so, subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all copies or
+    substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING
+    BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+    NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+    DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+  </copyright>
+
+  <description summary="the compositor's model of apps, windows and Spaces">
+    The model the desktop shell draws the dock, the app switcher, the bar's menus and Mission
+    Control from: every app with its identity and life, every window with its role, state,
+    place and geometry, and every Space. Windows pair with ext-foreign-toplevel-list handles and
+    Spaces with ext-workspace workspaces; this protocol adds what those do not carry, and the
+    management requests.
+
+    State arrives as a burst of events on an object closed by that object's `done`; a client
+    applies the burst atomically. The manager's `done` closes a burst that created or removed
+    objects.
+
+    State events that a person or an agent can cause carry the actor that caused them, so the
+    shell can say who moved a window.
+
+    Advertised on Shell and Agent connections only. On an Agent connection every request that
+    changes something raises the manager's `not_permitted`.
+
+    This protocol is a draft. Until it is declared stable, version 1 may change in place with
+    every client and the server updated together.
+  </description>
+
+  <interface name="quire_desktop_manager_v1" version="1">
+    <description summary="the desktop model's global">
+      On bind the compositor sends an `app`, `window` and `space` event for each existing
+      object, each followed by its state burst, then `active` and `done`.
+    </description>
+
+    <enum name="error">
+      <entry name="not_permitted" value="0"
+             summary="a management request on an Agent connection"/>
+      <entry name="unknown_output" value="1" summary="the wl_output is not a live output"/>
+    </enum>
+
+    <enum name="actor_kind">
+      <description summary="who caused a change">
+        The kinds of actor the provenance model knows.
+      </description>
+      <entry name="user" value="0" summary="the person"/>
+      <entry name="companion" value="1" summary="the companion"/>
+      <entry name="cua" value="2" summary="a computer-use run"/>
+      <entry name="mcp" value="3" summary="an MCP client"/>
+      <entry name="cli" value="4" summary="a command-line tool"/>
+      <entry name="app" value="5" summary="an app"/>
+      <entry name="third_party" value="6" summary="a third-party agent"/>
+      <entry name="system" value="7" summary="the system itself"/>
+      <entry name="unknown" value="8" summary="not known"/>
+    </enum>
+
+    <request name="get_window_for">
+      <description summary="the desktop window of a toplevel handle">
+        Creates a quire_desktop_window_v1 for the window an ext_foreign_toplevel_handle_v1
+        names. Its state burst follows at once.
+      </description>
+      <arg name="id" type="new_id" interface="quire_desktop_window_v1"/>
+      <arg name="toplevel" type="object" interface="ext_foreign_toplevel_handle_v1"/>
+    </request>
+
+    <request name="create_space">
+      <description summary="add a Space on an output">
+        The new Space arrives as a `space` event.
+      </description>
+      <arg name="output" type="object" interface="wl_output"/>
+    </request>
+
+    <request name="stop">
+      <description summary="stop sending new objects">
+        The compositor sends no more `app`, `window` or `space` events and answers with
+        `finished`.
+      </description>
+    </request>
+
+    <request name="destroy" type="destructor">
+      <description summary="destroy the manager">
+        Valid after `finished`. Objects already created stay valid.
+      </description>
+    </request>
+
+    <event name="app">
+      <description summary="an app appeared">
+        Its state burst follows on the new object.
+      </description>
+      <arg name="id" type="new_id" interface="quire_desktop_app_v1"/>
+    </event>
+
+    <event name="window">
+      <description summary="a window appeared">
+        Its state burst follows on the new object.
+      </description>
+      <arg name="id" type="new_id" interface="quire_desktop_window_v1"/>
+    </event>
+
+    <event name="space">
+      <description summary="a Space appeared">
+        Its state burst follows on the new object.
+      </description>
+      <arg name="id" type="new_id" interface="quire_desktop_space_v1"/>
+    </event>
+
+    <event name="active">
+      <description summary="the active app and key window changed">
+        Null when no app is active, or when the active app has no key window.
+      </description>
+      <arg name="app" type="object" interface="quire_desktop_app_v1" allow-null="true"/>
+      <arg name="key" type="object" interface="quire_desktop_window_v1" allow-null="true"/>
+      <arg name="actor" type="uint" enum="actor_kind"/>
+    </event>
+
+    <event name="done">
+      <description summary="the manager's burst is complete"/>
+    </event>
+
+    <event name="finished">
+      <description summary="no more events on the manager">
+        Sent after `stop`, or when the compositor withdraws the global. The client destroys the
+        manager.
+      </description>
+    </event>
+  </interface>
+
+  <interface name="quire_desktop_app_v1" version="1">
+    <description summary="one running app">
+      An app is the set of windows and processes with one app key. Its state burst ends with
+      `done`; `closed` is its last event.
+    </description>
+
+    <enum name="proof_kind">
+      <description summary="how the compositor knows who the app is"/>
+      <entry name="scope" value="0" summary="the app's systemd scope, made by our launcher"/>
+      <entry name="security_context" value="1"
+             summary="the sandbox's wp_security_context_v1 app id"/>
+      <entry name="claimed" value="2" summary="only what the app says (xdg_toplevel app id)"/>
+    </enum>
+
+    <enum name="app_life_kind">
+      <description summary="where the app is in its life"/>
+      <entry name="launching" value="0" summary="started, no window yet"/>
+      <entry name="running" value="1" summary="running with windows"/>
+      <entry name="windowless" value="2" summary="running with no window"/>
+      <entry name="quitting" value="3" summary="asked to quit, still running"/>
+      <entry name="not_responding" value="4" summary="not answering pings"/>
+    </enum>
+
+    <enum name="app_visibility">
+      <description summary="whether the app's windows are hidden"/>
+      <entry name="shown" value="0" summary="its windows are shown"/>
+      <entry name="hidden" value="1" summary="the app is hidden"/>
+    </enum>
+
+    <enum name="menu_source_kind">
+      <description summary="where the app's global menu comes from"/>
+      <entry name="none" value="0" summary="no global menu"/>
+      <entry name="dbus_menu" value="1" summary="com.canonical.dbusmenu"/>
+      <entry name="gtk_menus" value="2" summary="org.gtk.Menus"/>
+    </enum>
+
+    <enum name="attention">
+      <description summary="how much the app asks for the person"/>
+      <entry name="none" value="0" summary="nothing"/>
+      <entry name="informational" value="1" summary="once"/>
+      <entry name="critical" value="2" summary="until the person responds"/>
+    </enum>
+
+    <event name="identity">
+      <description summary="who the app is">
+        `key` is the app key the rest of the desktop names the app by. `claimed_id` is what the
+        app says about itself, which may differ from `key` when `proof` is not `claimed`.
+      </description>
+      <arg name="key" type="string" summary="the app key"/>
+      <arg name="proof" type="uint" enum="proof_kind"/>
+      <arg name="claimed_id" type="string" summary="the app id the app claims"/>
+    </event>
+
+    <event name="life">
+      <description summary="the app's life changed"/>
+      <arg name="state" type="uint" enum="app_life_kind"/>
+    </event>
+
+    <event name="visibility">
+      <description summary="the app was hidden or shown"/>
+      <arg name="state" type="uint" enum="app_visibility"/>
+    </event>
+
+    <event name="menu_source">
+      <description summary="where to read the app's global menu">
+        `bus` is the D-Bus name; `app_path` and `menubar_path` are object paths, empty when the
+        source has none.
+      </description>
+      <arg name="kind" type="uint" enum="menu_source_kind"/>
+      <arg name="bus" type="string"/>
+      <arg name="app_path" type="string"/>
+      <arg name="menubar_path" type="string"/>
+    </event>
+
+    <event name="attention">
+      <description summary="the app's request for attention changed"/>
+      <arg name="level" type="uint" enum="attention"/>
+    </event>
+
+    <event name="mru">
+      <description summary="the app's place in recent use">
+        0 is the most recently active app.
+      </description>
+      <arg name="rank" type="uint"/>
+    </event>
+
+    <event name="done">
+      <description summary="the app's burst is complete"/>
+    </event>
+
+    <event name="closed">
+      <description summary="the app ended">
+        The last event; the client destroys the object.
+      </description>
+    </event>
+
+    <request name="activate">
+      <description summary="bring the app forward">
+        Activates the app and raises its windows. `serial` is the serial of the input event
+        that led to the request.
+      </description>
+      <arg name="seat" type="object" interface="wl_seat"/>
+      <arg name="serial" type="uint"/>
+    </request>
+
+    <request name="hide">
+      <description summary="hide the app"/>
+    </request>
+
+    <request name="unhide">
+      <description summary="show the hidden app"/>
+    </request>
+
+    <request name="hide_others">
+      <description summary="hide every other app"/>
+    </request>
+
+    <request name="quit">
+      <description summary="ask the app to quit">
+        The app may refuse or ask the person first.
+      </description>
+    </request>
+
+    <request name="force_quit">
+      <description summary="end the app's processes"/>
+    </request>
+
+    <request name="reopen">
+      <description summary="activate an app with no windows">
+        The compositor answers with quire_shell_v1.reopen to the shell.
+      </description>
+    </request>
+
+    <request name="destroy" type="destructor">
+      <description summary="destroy the object"/>
+    </request>
+  </interface>
+
+  <interface name="quire_desktop_window_v1" version="1">
+    <description summary="one window">
+      A toplevel the compositor manages. Its state burst ends with `done`; `closed` is its last
+      event.
+    </description>
+
+    <enum name="modality">
+      <description summary="how the window blocks others"/>
+      <entry name="none" value="0" summary="blocks nothing"/>
+      <entry name="window_modal" value="1" summary="a sheet: blocks its parent window"/>
+      <entry name="modeless" value="2" summary="a dialog that blocks nothing"/>
+    </enum>
+
+    <enum name="window_state_kind">
+      <description summary="the window's state"/>
+      <entry name="floating" value="0" summary="placed by hand"/>
+      <entry name="tiled" value="1" summary="in a tile zone"/>
+      <entry name="filled" value="2" summary="filling the usable area"/>
+      <entry name="full_screen" value="3" summary="full screen"/>
+      <entry name="minimised" value="4" summary="minimised into the dock"/>
+    </enum>
+
+    <enum name="place_kind">
+      <description summary="which Spaces show the window"/>
+      <entry name="on_space" value="0" summary="one Space"/>
+      <entry name="all_spaces" value="1" summary="every Space"/>
+    </enum>
+
+    <enum name="responsiveness">
+      <description summary="whether the window's client answers"/>
+      <entry name="responding" value="0" summary="answering pings"/>
+      <entry name="not_responding" value="1" summary="not answering pings"/>
+    </enum>
+
+    <enum name="lease_state">
+      <description summary="whether an agent holds the window"/>
+      <entry name="free" value="0" summary="no lease"/>
+      <entry name="granted" value="1" summary="leased, input flowing"/>
+      <entry name="suspended" value="2" summary="leased, input stopped"/>
+    </enum>
+
+    <enum name="toggle">
+      <description summary="turn something on or off"/>
+      <entry name="off" value="0" summary="off"/>
+      <entry name="on" value="1" summary="on"/>
+    </enum>
+
+    <enum name="assign">
+      <description summary="which Spaces the window is assigned to"/>
+      <entry name="all_spaces" value="0" summary="every Space"/>
+      <entry name="this_space" value="1" summary="the Space it is on"/>
+      <entry name="none" value="2" summary="no assignment: it stays where it opens"/>
+    </enum>
+
+    <event name="identifier">
+      <description summary="the ext-foreign-toplevel identifier">
+        The identifier the window's ext_foreign_toplevel_handle_v1 carries. Sent once.
+      </description>
+      <arg name="identifier" type="string"/>
+    </event>
+
+    <event name="app">
+      <description summary="the app the window belongs to"/>
+      <arg name="app" type="object" interface="quire_desktop_app_v1"/>
+    </event>
+
+    <event name="role">
+      <description summary="the window's role and modality"/>
+      <arg name="role" type="uint" enum="quire_window_v1.window_role"/>
+      <arg name="modality" type="uint" enum="modality"/>
+    </event>
+
+    <event name="state">
+      <description summary="the window's state changed"/>
+      <arg name="kind" type="uint" enum="window_state_kind"/>
+      <arg name="actor" type="uint" enum="quire_desktop_manager_v1.actor_kind"/>
+    </event>
+
+    <event name="place">
+      <description summary="which Spaces show the window">
+        `space` is the Space for `on_space` and null for `all_spaces`.
+      </description>
+      <arg name="kind" type="uint" enum="place_kind"/>
+      <arg name="space" type="object" interface="quire_desktop_space_v1" allow-null="true"/>
+    </event>
+
+    <event name="output">
+      <description summary="the output the window is mostly on"/>
+      <arg name="output" type="object" interface="wl_output"/>
+    </event>
+
+    <event name="geometry">
+      <description summary="the window's rectangle">
+        In global logical pixels, and the scale of its output in 120ths.
+      </description>
+      <arg name="x" type="int"/>
+      <arg name="y" type="int"/>
+      <arg name="width" type="uint"/>
+      <arg name="height" type="uint"/>
+      <arg name="scale120" type="uint" summary="scale times 120"/>
+    </event>
+
+    <event name="parent">
+      <description summary="the window's parent">
+        Null for a window without a parent.
+      </description>
+      <arg name="parent" type="object" interface="quire_desktop_window_v1" allow-null="true"/>
+    </event>
+
+    <event name="emphasis">
+      <description summary="the window's emphasis changed"/>
+      <arg name="emphasis" type="uint" enum="quire_window_v1.emphasis"/>
+    </event>
+
+    <event name="sensitivity">
+      <description summary="the window's sensitivity">
+        The strongest level any of the window's surfaces declares.
+      </description>
+      <arg name="level" type="uint" enum="quire_sensitive_surface_v1.sensitivity_level"/>
+    </event>
+
+    <event name="lease">
+      <description summary="an agent's hold on the window">
+        `glow` is the run's glow; `off` when the state is `free`.
+      </description>
+      <arg name="state" type="uint" enum="lease_state"/>
+      <arg name="glow" type="uint" enum="quire_agent_lease_v1.glow_state"/>
+    </event>
+
+    <event name="responsiveness">
+      <description summary="whether the window's client answers"/>
+      <arg name="state" type="uint" enum="responsiveness"/>
+    </event>
+
+    <event name="placement">
+      <description summary="the window's placement changed"/>
+      <arg name="mark" type="uint" enum="quire_window_v1.placement_mark"/>
+    </event>
+
+    <event name="menu_path">
+      <description summary="the window's own menu object path">
+        The object path of this window's menu under its app's menu source; empty when the window
+        uses the app's menu.
+      </description>
+      <arg name="path" type="string"/>
+    </event>
+
+    <event name="done">
+      <description summary="the window's burst is complete"/>
+    </event>
+
+    <event name="closed">
+      <description summary="the window closed">
+        The last event; the client destroys the object.
+      </description>
+    </event>
+
+    <request name="activate">
+      <description summary="make the window key">
+        `serial` is the serial of the input event that led to the request.
+      </description>
+      <arg name="seat" type="object" interface="wl_seat"/>
+      <arg name="serial" type="uint"/>
+    </request>
+
+    <request name="close">
+      <description summary="ask the window to close"/>
+    </request>
+
+    <request name="minimise">
+      <description summary="minimise the window into the dock"/>
+    </request>
+
+    <request name="unminimise">
+      <description summary="bring the window back from the dock"/>
+    </request>
+
+    <request name="place">
+      <description summary="place the window"/>
+      <arg name="target" type="uint" enum="quire_window_v1.place_target"/>
+    </request>
+
+    <request name="full_screen">
+      <description summary="enter or leave full screen"/>
+      <arg name="toggle" type="uint" enum="toggle"/>
+    </request>
+
+    <request name="to_space">
+      <description summary="move the window to a Space"/>
+      <arg name="space" type="object" interface="quire_desktop_space_v1"/>
+    </request>
+
+    <request name="assign">
+      <description summary="assign the window to Spaces"/>
+      <arg name="assign" type="uint" enum="assign"/>
+    </request>
+
+    <request name="destroy" type="destructor">
+      <description summary="destroy the object"/>
+    </request>
+  </interface>
+
+  <interface name="quire_desktop_space_v1" version="1">
+    <description summary="one Space">
+      A Space is a desktop of one output, or a full-screen or Split View window's own Space, or
+      an agent's task Space. Its state burst ends with `done`; `removed` is its last event.
+    </description>
+
+    <enum name="space_kind">
+      <description summary="what the Space holds"/>
+      <entry name="desktop" value="0" summary="an ordinary desktop"/>
+      <entry name="full_screen" value="1" summary="one full-screen window"/>
+      <entry name="split_view" value="2" summary="two windows side by side"/>
+      <entry name="agent" value="3" summary="an agent's task"/>
+    </enum>
+
+    <enum name="space_activity">
+      <description summary="what is happening on the Space"/>
+      <entry name="none" value="0" summary="nothing to show"/>
+      <entry name="agent_running" value="1" summary="an agent run is working there"/>
+    </enum>
+
+    <event name="id">
+      <description summary="the Space's id">
+        The stable Space id the rest of the desktop keys on; also the ext-workspace `id`. Sent
+        once.
+      </description>
+      <arg name="space_id" type="string"/>
+    </event>
+
+    <event name="kind">
+      <description summary="what the Space holds"/>
+      <arg name="kind" type="uint" enum="space_kind"/>
+    </event>
+
+    <event name="occupant">
+      <description summary="the task the Space belongs to">
+        An opaque task token for an `agent` Space; empty otherwise.
+      </description>
+      <arg name="token" type="string"/>
+    </event>
+
+    <event name="position">
+      <description summary="the Space's position on its output">
+        0 is the leftmost.
+      </description>
+      <arg name="index" type="uint"/>
+    </event>
+
+    <event name="output">
+      <description summary="the Space's output"/>
+      <arg name="output" type="object" interface="wl_output"/>
+    </event>
+
+    <event name="activity">
+      <description summary="what is happening on the Space"/>
+      <arg name="activity" type="uint" enum="space_activity"/>
+    </event>
+
+    <event name="done">
+      <description summary="the Space's burst is complete"/>
+    </event>
+
+    <event name="removed">
+      <description summary="the Space is gone">
+        The last event; the client destroys the object.
+      </description>
+    </event>
+
+    <request name="activate">
+      <description summary="switch to the Space"/>
+    </request>
+
+    <request name="remove">
+      <description summary="remove the Space">
+        Its windows move to the neighbouring desktop Space.
+      </description>
+    </request>
+
+    <request name="move_to">
+      <description summary="move the Space on its output"/>
+      <arg name="position" type="uint"/>
+    </request>
+
+    <request name="destroy" type="destructor">
+      <description summary="destroy the object"/>
+    </request>
+  </interface>
+</protocol>

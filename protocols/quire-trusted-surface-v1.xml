@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<protocol name="quire_trusted_surface_v1">
+  <copyright>
+    Copyright 2026 Po Hsuan Lai
+
+    Licensed under the MIT license or the Apache License, Version 2.0, at your option.
+
+    The MIT license:
+
+    Permission is hereby granted, free of charge, to any person obtaining a copy of this software
+    and associated documentation files (the "Software"), to deal in the Software without
+    restriction, including without limitation the rights to use, copy, modify, merge, publish,
+    distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the
+    Software is furnished to do so, subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all copies or
+    substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING
+    BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+    NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+    DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+  </copyright>
+
+  <description summary="surfaces only the person can answer">
+    The desktop shell shows a confirmation or a notice on a trusted surface. The compositor
+    draws it above every other surface, keeps agent seats and synthetic input away from it,
+    accepts an answer only from physical input and only after the surface has been on screen,
+    unobscured, for its arming time. The decision itself travels from the shell to its caller
+    over D-Bus; this protocol only tells the shell when an answer is trustworthy.
+
+    A trusted surface anchors to a window by its ext_foreign_toplevel_handle_v1 identifier
+    string, because the shell creates trusted surfaces on a different connection from the one
+    that holds its toplevel handles, and no Wayland object crosses connections.
+
+    This protocol is a draft. Until it is declared stable, version 1 may change in place with
+    every client and the server updated together.
+  </description>
+
+  <interface name="quire_trusted_manager_v1" version="1">
+    <description summary="creates trusted surfaces">
+      Advertised on Shell connections only.
+    </description>
+
+    <enum name="error">
+      <entry name="role_taken" value="0" summary="the wl_surface already has a role"/>
+      <entry name="unknown_toplevel" value="1"
+             summary="no toplevel has the given identifier"/>
+    </enum>
+
+    <enum name="trusted_kind">
+      <description summary="what the surface asks of the person"/>
+      <entry name="confirm" value="0" summary="a question the person answers"/>
+      <entry name="notice" value="1" summary="a notice the person acknowledges"/>
+    </enum>
+
+    <enum name="trusted_anchor">
+      <description summary="where the surface appears"/>
+      <entry name="window" value="0" summary="attached to the named toplevel, as a sheet"/>
+      <entry name="centre" value="1" summary="centred on the output with the pointer"/>
+    </enum>
+
+    <request name="get_trusted">
+      <description summary="give a surface the trusted role">
+        `toplevel` is the ext_foreign_toplevel_handle_v1 identifier of the window for the
+        `window` anchor, and empty for `centre`. `arm_ms` is how long the surface must be
+        presented and unobscured before an answer counts.
+      </description>
+      <arg name="id" type="new_id" interface="quire_trusted_surface_v1"/>
+      <arg name="surface" type="object" interface="wl_surface"/>
+      <arg name="kind" type="uint" enum="trusted_kind"/>
+      <arg name="anchor" type="uint" enum="trusted_anchor"/>
+      <arg name="toplevel" type="string" summary="toplevel identifier, empty for centre"/>
+      <arg name="arm_ms" type="uint" summary="milliseconds before an answer counts"/>
+    </request>
+
+    <request name="destroy" type="destructor">
+      <description summary="destroy the manager">
+        Trusted surfaces already created stay valid.
+      </description>
+    </request>
+  </interface>
+
+  <interface name="quire_trusted_surface_v1" version="1">
+    <description summary="one trusted surface">
+      Events arrive in order: `presented`, then `armed`, then `answered_by_physical` or
+      `withdrawn`. `withdrawn` is the last event.
+    </description>
+
+    <enum name="withdrawn">
+      <description summary="why the compositor took the surface down"/>
+      <entry name="lock" value="0" summary="the session locked"/>
+      <entry name="target_gone" value="1" summary="the anchoring window closed"/>
+      <entry name="kill" value="2" summary="the kill chord was pressed"/>
+    </enum>
+
+    <event name="presented">
+      <description summary="the surface is on screen">
+        Sent when the surface is first shown unobscured.
+      </description>
+    </event>
+
+    <event name="armed">
+      <description summary="answers count from now">
+        Sent when the surface has been presented and unobscured for its arming time.
+      </description>
+    </event>
+
+    <event name="answered_by_physical">
+      <description summary="the person answered with physical input">
+        `serial` is the serial of the input event the compositor delivered to the surface; the
+        shell sends the answer it carries only when this event names it.
+      </description>
+      <arg name="serial" type="uint" summary="serial of the physical input event"/>
+    </event>
+
+    <event name="withdrawn">
+      <description summary="the surface was taken down">
+        The last event; the client destroys the object.
+      </description>
+      <arg name="reason" type="uint" enum="withdrawn"/>
+    </event>
+
+    <request name="destroy" type="destructor">
+      <description summary="take the surface down">
+        The wl_surface loses the trusted role.
+      </description>
+    </request>
+  </interface>
+</protocol>
