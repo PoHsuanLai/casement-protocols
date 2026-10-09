@@ -2,7 +2,7 @@
 //! arguments in opcode order, enum codes, cross-references, the vocab, the licence notice, and
 //! `quire-agent-v1.xml`'s bytes.
 
-mod support;
+use crate::support;
 
 use std::collections::BTreeSet;
 

@@ -1,8 +1,6 @@
 //! Every vocab enum against the enum wayland-scanner generates from the XML, on both sides:
 //! the same codes, the same variant names.
 
-#![cfg(all(feature = "client", feature = "server"))]
-
 use std::fmt::Debug;
 
 use casement_protocols::vocab::{self, MacMods, WireCode};

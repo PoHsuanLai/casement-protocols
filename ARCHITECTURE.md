@@ -100,14 +100,14 @@ reads the same as the protocol.
    order (a bitfield's are single bits).
 2. Add the variant (or a `wire_enum!`) in the vocab file of its area, with a doc line; export a
    new enum from `src/vocab/mod.rs`.
-3. A new enum gets a row in `tests/xml_introspection.rs` `VOCAB`, a `same_codes` line in
-   `tests/vocab_codes.rs` and a line in `tests/round_trip.rs`.
+3. A new enum gets a row in `tests/it/xml_introspection.rs` `VOCAB`, a `same_codes` line in
+   `tests/it/vocab_codes.rs` and a line in `tests/it/round_trip.rs`.
 4. Every consumer that matches on the enum is updated in the same change.
 
 **Add a request or event.**
 1. Add it to the interface in its XML with a description; arguments that carry a closed set use
    `enum=`, naming the owning interface when it is another one.
-2. Update the interface's row in `tests/support/frozen.rs` `INTERFACES` (order is opcode
+2. Update the interface's row in `tests/it/support/frozen.rs` `INTERFACES` (order is opcode
    order).
 3. The server (casement) and every client are updated in the same change (see section 7).
 
@@ -115,19 +115,19 @@ reads the same as the protocol.
 1. `protocols/quire-<name>-v1.xml` with the copyright block every file carries.
 2. A `client_protocol!` line in `src/client.rs` and a `server_protocol!` line in
    `src/server.rs`, listing the protocols whose interfaces it names.
-3. The file in `tests/support/mod.rs` `FILES`; its interfaces and errors in
-   `tests/support/frozen.rs` `INTERFACES` and `ERRORS`.
+3. The file in `tests/it/support/mod.rs` `FILES`; its interfaces and errors in
+   `tests/it/support/frozen.rs` `INTERFACES` and `ERRORS`.
 
 ## 6. Tests
 
 | File | Proves |
 | --- | --- |
-| `tests/xml_introspection.rs` | every file parses and is named after itself; every interface is `quire_*_v1` at version 1; every request and event with its arguments, in opcode order, as frozen; error enums; codes dense from 0 (bitfields: single bits); every vocab enum has its XML enum's names and codes and every XML enum has a vocab type; cross-references resolve; the licence notice; `quire-agent-v1.xml`'s pinned bytes; with both features, the generated interfaces' names, versions and messages |
-| `tests/vocab_codes.rs` | (features `client,server`) every vocab enum accepts exactly the codes the generated enum accepts, with the same variant names, on both sides; `MacMods` bits |
-| `tests/round_trip.rs` | every vocab value round-trips through serde and its code; pinned JSON for stored forms |
-| `tests/receipt.rs` | receipt counts (table) and a pinned digest |
+| `tests/it/xml_introspection.rs` | every file parses and is named after itself; every interface is `quire_*_v1` at version 1; every request and event with its arguments, in opcode order, as frozen; error enums; codes dense from 0 (bitfields: single bits); every vocab enum has its XML enum's names and codes and every XML enum has a vocab type; cross-references resolve; the licence notice; `quire-agent-v1.xml`'s pinned bytes; with both features, the generated interfaces' names, versions and messages |
+| `tests/it/vocab_codes.rs` | (features `client,server`) every vocab enum accepts exactly the codes the generated enum accepts, with the same variant names, on both sides; `MacMods` bits |
+| `tests/it/round_trip.rs` | every vocab value round-trips through serde and its code; pinned JSON for stored forms |
+| `tests/it/receipt.rs` | receipt counts (table) and a pinned digest |
 
-`tests/support/mod.rs` reads the XML into plain data with quick-xml; `tests/support/frozen.rs`
+`tests/it/support/mod.rs` reads the XML into plain data with quick-xml; `tests/it/support/frozen.rs`
 holds the frozen interface as tables (every message with its arguments, every error enum).
 
 ## 7. Repo rules
@@ -147,7 +147,7 @@ holds the frozen interface as tables (every message with its arguments, every er
 - **Protocol evolution:** until the user declares the protocols released, a v1 XML changes in
   place, with the server and every client updated in the same change (one `~/desktop` manifest
   bump); no `since=` until then.
-- **`quire-agent-v1.xml` came from cua byte for byte**; `tests/xml_introspection.rs` pins its
+- **`quire-agent-v1.xml` came from cua byte for byte**; `tests/it/xml_introspection.rs` pins its
   bytes. A change to it updates the pin in the same commit.
 - **Clean room:** the XML is written from our own design notes. COSMIC protocol XML is read
   for facts only, never copied; no interface here is COSMIC's (`check-boundary.sh` row 5).
