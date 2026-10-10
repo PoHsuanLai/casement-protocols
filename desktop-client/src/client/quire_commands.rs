@@ -81,10 +81,7 @@ fn space(wire: &Wire, key: SpaceKey) -> Result<&QuireDesktopSpaceV1, CommandErro
         .ok_or(CommandError::UnknownSpace(key))
 }
 
-fn manager<'w>(
-    wire: &'w Wire,
-    kind: CommandKind,
-) -> Result<&'w QuireDesktopManagerV1, CommandError> {
+fn manager(wire: &Wire, kind: CommandKind) -> Result<&QuireDesktopManagerV1, CommandError> {
     wire.handles
         .quire_manager
         .as_ref()
@@ -94,7 +91,7 @@ fn manager<'w>(
         })
 }
 
-fn shell<'w>(wire: &'w Wire, kind: CommandKind) -> Result<&'w QuireShellV1, CommandError> {
+fn shell(wire: &Wire, kind: CommandKind) -> Result<&QuireShellV1, CommandError> {
     wire.handles
         .quire_shell
         .as_ref()

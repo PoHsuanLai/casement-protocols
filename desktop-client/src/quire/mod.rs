@@ -26,7 +26,6 @@ mod window;
 
 pub use app::{AppChange, AppEvent, MenuSource, QuireApp};
 pub use event::QuireEvent;
-pub use event::QuireEvent;
 pub use link::{Linker, WindowObject};
 pub use set::{Active, Quire};
 pub use shell::{Overview, OverviewSlot, OverviewSpaceSlot, Reveals, Shell, ShellEvent, Switcher};
