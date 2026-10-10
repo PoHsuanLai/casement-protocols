@@ -19,7 +19,8 @@ use wayland_protocols_wlr::output_management::v1::client::zwlr_output_head_v1::Z
 use wayland_protocols_wlr::output_management::v1::client::zwlr_output_manager_v1::ZwlrOutputManagerV1;
 use wayland_protocols_wlr::output_management::v1::client::zwlr_output_mode_v1::ZwlrOutputModeV1;
 
-use crate::keys::{GroupKey, HeadKey, ModeKey, SurfaceKey, ToplevelKey, WorkspaceKey};
+use super::capture::Live;
+use crate::keys::{CaptureId, GroupKey, HeadKey, ModeKey, SurfaceKey, ToplevelKey, WorkspaceKey};
 use crate::names::OutputName;
 
 /// The bound globals (each present only when offered) and the objects they created.
@@ -36,6 +37,8 @@ pub(super) struct Handles {
     pub(super) seat: Option<WlSeat>,
     /// `wl_output`s by the name they announced, for capture sources and fullscreen.
     pub(super) outputs: BTreeMap<OutputName, WlOutput>,
+    /// The name each `wl_output` announced, by its protocol id.
+    pub(super) output_names: BTreeMap<u32, OutputName>,
     pub(super) listed: BTreeMap<ToplevelKey, ExtForeignToplevelHandleV1>,
     pub(super) managed: BTreeMap<ToplevelKey, ZwlrForeignToplevelHandleV1>,
     pub(super) workspaces: BTreeMap<WorkspaceKey, ExtWorkspaceHandleV1>,
@@ -43,4 +46,6 @@ pub(super) struct Handles {
     pub(super) heads: BTreeMap<HeadKey, ZwlrOutputHeadV1>,
     pub(super) modes: BTreeMap<ModeKey, ZwlrOutputModeV1>,
     pub(super) surfaces: BTreeMap<SurfaceKey, WlSurface>,
+    /// Captures in flight.
+    pub(super) captures: BTreeMap<CaptureId, Live>,
 }

@@ -38,3 +38,50 @@ pub enum GroupAbility {
 
 /// A set of values of an ordered kind; one type for flags and abilities.
 pub(crate) type Set<T> = BTreeSet<T>;
+
+impl WorkspaceFlag {
+    /// The states set in a `state` bitfield; unknown bits are skipped.
+    pub fn set_from_bits(bits: u32) -> Set<Self> {
+        [(1, Self::Active), (2, Self::Urgent), (4, Self::Hidden)]
+            .into_iter()
+            .filter(|(bit, _)| bits & bit != 0)
+            .map(|(_, flag)| flag)
+            .collect()
+    }
+}
+
+impl WorkspaceAbility {
+    /// The abilities set in a `workspace_capabilities` bitfield; unknown bits are skipped.
+    pub fn set_from_bits(bits: u32) -> Set<Self> {
+        [
+            (1, Self::Activate),
+            (2, Self::Deactivate),
+            (4, Self::Remove),
+            (8, Self::Assign),
+        ]
+        .into_iter()
+        .filter(|(bit, _)| bits & bit != 0)
+        .map(|(_, ability)| ability)
+        .collect()
+    }
+}
+
+impl GroupAbility {
+    /// The abilities set in a `group_capabilities` bitfield; unknown bits are skipped.
+    pub fn set_from_bits(bits: u32) -> Set<Self> {
+        [(1, Self::CreateWorkspace)]
+            .into_iter()
+            .filter(|(bit, _)| bits & bit != 0)
+            .map(|(_, ability)| ability)
+            .collect()
+    }
+}
+
+/// The coordinates in a wire `coordinates` array (native-endian `u32`s); a trailing partial
+/// word is skipped.
+pub fn coordinates_from_array(bytes: &[u8]) -> Vec<u32> {
+    bytes
+        .chunks_exact(4)
+        .map(|w| u32::from_ne_bytes([w[0], w[1], w[2], w[3]]))
+        .collect()
+}

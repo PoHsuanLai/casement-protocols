@@ -3,6 +3,8 @@
 //! Neither protocol names the other's object, so the pairing is a heuristic over what both
 //! describe: app id and title, in arrival order (FINDINGS). It is pure so it is testable.
 
+use std::collections::BTreeSet;
+
 use super::model::Toplevel;
 use crate::keys::ToplevelKey;
 use crate::names::ToplevelIdentifier;
@@ -50,7 +52,37 @@ pub struct Pairing {
 
 /// Pairs the not yet paired `listed` entries with `managed` toplevels: equal app id and title
 /// first, one to one, earliest first; an entry with no match stays unpaired.
+///
+/// Both slices are in arrival order and hold only entries not paired yet. Identical windows
+/// (same app id and title) pair first-to-first, second-to-second, so the result is
+/// deterministic but can swap two windows opened together (FINDINGS).
+///
+/// ```
+/// use desktop_client::toplevel::{Listed, Toplevel, pair};
+/// use desktop_client::{ToplevelIdentifier, ToplevelKey};
+///
+/// let listed = [Listed::new(ToplevelKey::new(1), ToplevelIdentifier::new("a"), "T", "app")];
+/// let mut managed = Toplevel::new(ToplevelKey::new(2));
+/// managed.title = "T".into();
+/// managed.app_id = "app".into();
+/// let pairs = pair(&listed, &[&managed]);
+/// assert_eq!(pairs.len(), 1);
+/// assert_eq!(pairs[0].managed, ToplevelKey::new(2));
+/// ```
 pub fn pair(listed: &[Listed], managed: &[&Toplevel]) -> Vec<Pairing> {
-    let _ = (listed, managed);
-    todo!("fill: match on (app_id, title) in arrival order, each side used once")
+    let mut taken: BTreeSet<ToplevelKey> = BTreeSet::new();
+    let mut pairs = Vec::new();
+    for entry in listed {
+        let found = managed.iter().find(|m| {
+            !taken.contains(&m.key) && m.app_id == entry.app_id && m.title == entry.title
+        });
+        if let Some(m) = found {
+            taken.insert(m.key);
+            pairs.push(Pairing {
+                listed: entry.key,
+                managed: m.key,
+            });
+        }
+    }
+    pairs
 }

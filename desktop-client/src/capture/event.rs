@@ -20,7 +20,8 @@ pub enum CaptureFailure {
     /// The session stopped (the output went away, or the compositor refused).
     #[error("the capture session stopped")]
     Stopped,
-    /// The compositor offered no shared-memory format, only dma-buf.
+    /// The compositor offered no shared-memory format this crate reads (dma-buf only, or an
+    /// unknown layout).
     #[error("the compositor offers no shared-memory format")]
     NoShmFormat,
 }

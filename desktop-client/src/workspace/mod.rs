@@ -10,7 +10,7 @@ mod reduce;
 mod set;
 
 pub use event::{GroupChange, WorkspaceChange, WorkspaceEvent};
-pub use flags::{GroupAbility, WorkspaceAbility, WorkspaceFlag};
+pub use flags::{GroupAbility, WorkspaceAbility, WorkspaceFlag, coordinates_from_array};
 pub use model::{Group, Workspace};
 pub(crate) use reduce::reduce_workspaces;
 pub use set::{Snapshot, Workspaces};

@@ -4,6 +4,7 @@
 //! against the state ([`OutputConfig::validate`]) and sent with `DesktopCommand::ApplyOutputs`
 //! or `TestOutputs`.
 
+mod complete;
 mod config;
 mod event;
 mod model;
@@ -11,6 +12,7 @@ mod reduce;
 mod set;
 mod units;
 
+pub use complete::complete;
 pub use config::{
     ConfigError, ConfigOutcome, ConfigPurpose, HeadChangeRequest, HeadConfig, HeadSettings,
     ModeChoice, OutputConfig,

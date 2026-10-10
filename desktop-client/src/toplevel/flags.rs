@@ -16,6 +16,20 @@ pub enum ToplevelFlag {
     Fullscreen,
 }
 
+impl ToplevelFlag {
+    /// The state with this `zwlr_foreign_toplevel_handle_v1.state` code; `None` for a code
+    /// this crate does not know.
+    pub const fn from_code(code: u32) -> Option<Self> {
+        match code {
+            0 => Some(Self::Maximized),
+            1 => Some(Self::Minimized),
+            2 => Some(Self::Activated),
+            3 => Some(Self::Fullscreen),
+            _ => None,
+        }
+    }
+}
+
 /// The set of states a toplevel is in.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct ToplevelFlags(BTreeSet<ToplevelFlag>);
@@ -29,6 +43,16 @@ impl ToplevelFlags {
     /// Exactly these states.
     pub fn of(flags: impl IntoIterator<Item = ToplevelFlag>) -> Self {
         Self(flags.into_iter().collect())
+    }
+
+    /// The states in a wire `state` array (native-endian `u32` codes); unknown codes and a
+    /// trailing partial word are skipped.
+    pub fn from_array(bytes: &[u8]) -> Self {
+        Self::of(
+            bytes.chunks_exact(4).filter_map(|w| {
+                ToplevelFlag::from_code(u32::from_ne_bytes([w[0], w[1], w[2], w[3]]))
+            }),
+        )
     }
 
     /// Whether `flag` is set.

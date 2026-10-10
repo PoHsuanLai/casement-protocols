@@ -1,5 +1,8 @@
 //! A configuration to apply or test.
 
+use std::collections::BTreeSet;
+
+use super::model::Head;
 use super::set::Outputs;
 use super::units::{AdaptiveSync, RefreshMilliHz, ScaleMilli, Transform};
 use crate::geometry::{Point, Size};
@@ -22,10 +25,54 @@ impl OutputConfig {
     }
 
     /// Checks it against `outputs`: every head and mode exists, a mode belongs to its head, no
-    /// head is named twice, and the configuration is not empty.
+    /// head is named twice, a custom mode has a non-zero size and refresh, and the
+    /// configuration is not empty.
     pub fn validate(&self, outputs: &Outputs) -> Result<(), ConfigError> {
-        let _ = outputs;
-        todo!("fill: unknown head, unknown mode, mode of another head, duplicate head, empty")
+        if self.heads.is_empty() {
+            return Err(ConfigError::Empty);
+        }
+        let mut seen = BTreeSet::new();
+        for part in &self.heads {
+            let head = outputs
+                .get(part.head)
+                .ok_or(ConfigError::UnknownHead(part.head))?;
+            if !seen.insert(part.head) {
+                return Err(ConfigError::DuplicateHead(part.head));
+            }
+            if let HeadChangeRequest::Enable(settings) = &part.request
+                && let Some(choice) = &settings.mode
+            {
+                check_mode(outputs, head, choice)?;
+            }
+        }
+        Ok(())
+    }
+}
+
+fn check_mode(outputs: &Outputs, head: &Head, choice: &ModeChoice) -> Result<(), ConfigError> {
+    let head_key = head.key;
+    match choice {
+        ModeChoice::Existing(mode) if head.modes.iter().any(|m| m.key == *mode) => Ok(()),
+        ModeChoice::Existing(mode) => {
+            let elsewhere = outputs
+                .heads()
+                .any(|h| h.modes.iter().any(|m| m.key == *mode));
+            if elsewhere {
+                Err(ConfigError::ModeOfOtherHead {
+                    head: head_key,
+                    mode: *mode,
+                })
+            } else {
+                Err(ConfigError::UnknownMode(*mode))
+            }
+        }
+        ModeChoice::Custom { size, refresh } => {
+            if size.w == 0 || size.h == 0 || refresh.get() == 0 {
+                Err(ConfigError::InvalidCustomMode(head_key))
+            } else {
+                Ok(())
+            }
+        }
     }
 }
 
@@ -155,6 +202,12 @@ pub enum ConfigError {
     /// A mode does not exist.
     #[error("no mode {0:?}")]
     UnknownMode(ModeKey),
+    /// A custom mode has a zero width, height or refresh rate.
+    #[error("custom mode of head {0:?} has a zero size or refresh")]
+    InvalidCustomMode(HeadKey),
+    /// The compositor has not finished describing the heads (no serial to quote yet).
+    #[error("the compositor has not finished describing the output heads")]
+    NotSettled,
     /// A mode belongs to another head.
     #[error("mode {mode:?} is not a mode of head {head:?}")]
     ModeOfOtherHead {

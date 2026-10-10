@@ -2,10 +2,16 @@
 
 use wayland_client::QueueHandle;
 use wayland_client::globals::GlobalList;
+use wayland_client::protocol::wl_output::WlOutput;
+use wayland_client::protocol::wl_seat::WlSeat;
+use wayland_client::protocol::wl_shm::WlShm;
 
 use super::error::WireError;
 use super::wire::Wire;
-use crate::protocol::ProtocolSet;
+use crate::protocol::{Protocol, ProtocolSet};
+
+/// The `wl_output` version that carries `name`: the floor.
+pub(super) const OUTPUT_VERSION: u32 = 4;
 
 /// The offer in `globals`, as the protocols this crate uses.
 pub(super) fn offered(globals: &GlobalList) -> ProtocolSet {
@@ -16,13 +22,54 @@ pub(super) fn offered(globals: &GlobalList) -> ProtocolSet {
 
 /// Binds each offered protocol at the version this crate implements, and the first seat, the
 /// shm and every `wl_output` (at version 4 for `name`).
+///
+/// An output below version 4 is refused with [`WireError::OutputTooOld`]: without the name a
+/// toplevel, workspace or head cannot be matched to its output.
 pub(super) fn bind_all(
     wire: &mut Wire,
     globals: &GlobalList,
     qh: &QueueHandle<Wire>,
 ) -> Result<(), WireError> {
-    let _ = (wire, globals, qh);
-    todo!(
-        "fill: GlobalList::bind with version ranges; ext_workspace v1, wlr toplevel 3, wlr output 4"
-    )
+    bind_outputs(globals, qh)?;
+    wire.handles.seat = globals.bind::<WlSeat, Wire, ()>(qh, 1..=1, ()).ok();
+    wire.handles.shm = globals.bind::<WlShm, Wire, ()>(qh, 1..=1, ()).ok();
+    let offered = wire.state.protocols.clone();
+    if offered.contains(Protocol::ExtForeignToplevelList) {
+        wire.handles.toplevel_list = Some(globals.bind(qh, 1..=1, ())?);
+    }
+    if offered.contains(Protocol::WlrForeignToplevelManagement) {
+        wire.handles.toplevel_manager = Some(globals.bind(qh, 1..=3, ())?);
+    }
+    if offered.contains(Protocol::ExtWorkspace) {
+        wire.handles.workspace_manager = Some(globals.bind(qh, 1..=1, ())?);
+    }
+    if offered.contains(Protocol::WlrOutputManagement) {
+        wire.handles.output_manager = Some(globals.bind(qh, 1..=4, ())?);
+    }
+    if offered.contains(Protocol::ExtImageCopyCapture) {
+        wire.handles.copy_capture = Some(globals.bind(qh, 1..=1, ())?);
+    }
+    if offered.contains(Protocol::ExtOutputImageCaptureSource) {
+        wire.handles.output_source = Some(globals.bind(qh, 1..=1, ())?);
+    }
+    Ok(())
+}
+
+fn bind_outputs(globals: &GlobalList, qh: &QueueHandle<Wire>) -> Result<(), WireError> {
+    let outputs: Vec<(u32, u32)> = globals.contents().with_list(|list| {
+        list.iter()
+            .filter(|g| g.interface == "wl_output")
+            .map(|g| (g.name, g.version))
+            .collect()
+    });
+    for (name, version) in outputs {
+        if version < OUTPUT_VERSION {
+            return Err(WireError::OutputTooOld {
+                global: name,
+                version,
+            });
+        }
+        let _: WlOutput = globals.registry().bind(name, OUTPUT_VERSION, qh, ());
+    }
+    Ok(())
 }

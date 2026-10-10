@@ -7,15 +7,14 @@
 //! Protocol events become [`DesktopEvent`]s, are reduced into the state and are kept for
 //! [`Desktop::drain_events`]. Commands are checked with `supports` first and then sent.
 
-// Freeze: the fill lane calls the stubs below; until then they are unused.
-#![allow(dead_code)]
-
 mod bind;
 mod capture;
 mod commands;
 mod error;
 mod handles;
 mod output;
+mod pairing;
+mod passive;
 mod shm;
 mod toplevel;
 mod wire;
@@ -23,6 +22,7 @@ mod workspace;
 
 pub use error::WireError;
 
+use wayland_client::globals::registry_queue_init;
 use wayland_client::protocol::wl_surface::WlSurface;
 use wayland_client::{Connection, EventQueue};
 
@@ -62,8 +62,19 @@ impl DesktopClient {
     /// first seat for activation, and runs round trips until the first descriptions are in.
     /// The state's [`crate::DesktopState::protocols`] says what was found.
     pub fn new(connection: &Connection) -> Result<Self, WireError> {
-        let _ = connection;
-        todo!("fill: registry_queue_init, bind per Protocol, two roundtrips, emit Globals")
+        let (globals, mut queue) = registry_queue_init::<Wire>(connection)?;
+        let qh = queue.handle();
+        let mut wire = Wire::new(qh.clone());
+        wire.emit(DesktopEvent::Globals(bind::offered(&globals)));
+        bind::bind_all(&mut wire, &globals, &qh)?;
+        // The first round trip delivers the objects, the second their descriptions.
+        queue.roundtrip(&mut wire)?;
+        queue.roundtrip(&mut wire)?;
+        Ok(Self {
+            wire,
+            queue,
+            connection: connection.clone(),
+        })
     }
 
     /// The connection the client was given, for polling its file descriptor.
@@ -73,36 +84,38 @@ impl DesktopClient {
 
     /// Processes the events already read, without blocking. Returns how many were dispatched.
     pub fn dispatch_pending(&mut self) -> Result<usize, WireError> {
-        todo!("fill: queue.dispatch_pending(&mut wire)")
+        Ok(self.queue.dispatch_pending(&mut self.wire)?)
     }
 
     /// Reads from the socket and dispatches, blocking until something arrives.
     pub fn blocking_dispatch(&mut self) -> Result<usize, WireError> {
-        todo!("fill: queue.blocking_dispatch(&mut wire)")
+        Ok(self.queue.blocking_dispatch(&mut self.wire)?)
     }
 
     /// Waits until the compositor has answered everything sent so far.
     pub fn roundtrip(&mut self) -> Result<usize, WireError> {
-        todo!("fill: queue.roundtrip(&mut wire)")
+        Ok(self.queue.roundtrip(&mut self.wire)?)
     }
 
     /// Registers a surface of the caller's so a command can name it
     /// (`DesktopCommand::SetMinimiseTarget`).
     pub fn register_surface(&mut self, surface: &WlSurface) -> SurfaceKey {
-        let _ = surface;
-        todo!("fill: store the surface under a fresh key")
+        let key = SurfaceKey::new(self.wire.mint());
+        self.wire.handles.surfaces.insert(key, surface.clone());
+        key
     }
 
     /// Forgets a registered surface.
     pub fn forget_surface(&mut self, key: SurfaceKey) {
-        let _ = key;
-        todo!("fill: drop the surface")
+        self.wire.handles.surfaces.remove(&key);
     }
 
     /// Takes a finished capture: its frame, or why it failed. `None` while it is still going.
     pub fn take_capture(&mut self, id: CaptureId) -> Option<Result<Frame, CaptureFailure>> {
-        let _ = id;
-        todo!("fill: Captures::take_ready on the state")
+        let captures = std::mem::take(&mut self.wire.state.captures);
+        let (captures, ready) = captures.take_ready(id);
+        self.wire.state.captures = captures;
+        ready
     }
 }
 
@@ -114,7 +127,9 @@ impl Desktop for DesktopClient {
     }
 
     fn send(&mut self, command: DesktopCommand) -> Result<Ticket, WireError> {
-        commands::send(&mut self.wire, command)
+        let ticket = commands::send(&mut self.wire, command)?;
+        self.connection.flush()?;
+        Ok(ticket)
     }
 
     fn drain_events(&mut self) -> Vec<DesktopEvent> {

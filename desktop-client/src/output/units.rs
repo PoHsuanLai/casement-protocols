@@ -54,6 +54,63 @@ pub enum Transform {
     Flipped270,
 }
 
+impl Transform {
+    /// The transform with this `wl_output.transform` code; `None` outside 0 to 7.
+    pub const fn from_code(code: u32) -> Option<Self> {
+        match code {
+            0 => Some(Self::Normal),
+            1 => Some(Self::Rotate90),
+            2 => Some(Self::Rotate180),
+            3 => Some(Self::Rotate270),
+            4 => Some(Self::Flipped),
+            5 => Some(Self::Flipped90),
+            6 => Some(Self::Flipped180),
+            7 => Some(Self::Flipped270),
+            _ => None,
+        }
+    }
+
+    /// The `wl_output.transform` code.
+    pub const fn code(self) -> u32 {
+        match self {
+            Self::Normal => 0,
+            Self::Rotate90 => 1,
+            Self::Rotate180 => 2,
+            Self::Rotate270 => 3,
+            Self::Flipped => 4,
+            Self::Flipped90 => 5,
+            Self::Flipped180 => 6,
+            Self::Flipped270 => 7,
+        }
+    }
+}
+
+impl Enabled {
+    /// `On` for a non-zero wire value.
+    pub const fn from_wire(value: i32) -> Self {
+        if value == 0 { Self::Off } else { Self::On }
+    }
+}
+
+impl AdaptiveSync {
+    /// `Enabled` for the wire value 1.
+    pub const fn from_code(code: u32) -> Self {
+        if code == 1 {
+            Self::Enabled
+        } else {
+            Self::Disabled
+        }
+    }
+
+    /// The wire value.
+    pub const fn code(self) -> u32 {
+        match self {
+            Self::Disabled => 0,
+            Self::Enabled => 1,
+        }
+    }
+}
+
 /// A scale factor in thousandths (1500 is 1.5): `wl_fixed` as an integer, so it is `Eq`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct ScaleMilli(u32);
@@ -70,6 +127,17 @@ impl ScaleMilli {
     /// The thousandths.
     pub const fn get(self) -> u32 {
         self.0
+    }
+
+    /// The scale nearest `value`, a `wl_fixed` already read as a float; negative and NaN
+    /// become 0.
+    pub fn from_f64(value: f64) -> Self {
+        Self((value * 1000.0).round().max(0.0) as u32)
+    }
+
+    /// The scale as the float `wl_fixed` carries.
+    pub fn to_f64(self) -> f64 {
+        f64::from(self.0) / 1000.0
     }
 }
 
