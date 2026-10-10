@@ -79,7 +79,7 @@ else
 fi
 
 # 6. desktop-client: its core reaches no Wayland crate and no I/O, and names none in source;
-# the wire layer is the only place wayland_* is named.
+# the wire layer is the only place wayland_* is named in code (comments may mention it).
 dc=desktop-client
 leaked=0
 for dep in $FORBIDDEN rustix; do
@@ -91,7 +91,7 @@ for dep in $FORBIDDEN rustix; do
 done
 [ "$leaked" -eq 0 ] && echo "boundary holds: $dc (default features) reaches no wayland crate"
 if grep -rnE '\bwayland_(client|server|backend|scanner|protocols|protocols_wlr)\b' desktop-client/src \
-  | grep -vE '^desktop-client/src/client/'; then
+  | grep -vE '^desktop-client/src/client/' | grep -vE '^[^:]+:[0-9]+:[[:space:]]*//'; then
   echo "LEAK: desktop-client names a wayland crate outside src/client/"
   fail=1
 else
