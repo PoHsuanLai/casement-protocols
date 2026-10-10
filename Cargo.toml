@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["."]
+members = [".", "desktop-client"]
 
 [workspace.package]
 version = "0.1.0"
@@ -27,6 +27,8 @@ serde_json = "1"
 # code names for a bitfield enum (`mac_mods`); the major wayland-client resolves. quick-xml is
 # the parser wayland-scanner itself uses, at its minor, for the XML introspection tests.
 wayland-scanner = "0.31"
+wayland-protocols-wlr = { version = "0.3.12", features = ["client"] }
+rustix = { version = "1", features = ["fs"] }
 wayland-server = "0.31"
 bitflags = "2"
 quick-xml = "0.41"

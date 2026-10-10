@@ -139,6 +139,9 @@ holds the frozen interface as tables (every message with its arguments, every er
   cargo clippy --all-targets --features client,server -- -D warnings
   cargo test
   cargo test --features client,server
+  cargo clippy -p desktop-client --all-targets -- -D warnings
+  cargo clippy -p desktop-client --all-targets --features client,fake -- -D warnings
+  cargo test -p desktop-client --features client,fake
   ./scripts/check-boundary.sh
   cargo deny check licenses
   ```
@@ -152,3 +155,42 @@ holds the frozen interface as tables (every message with its arguments, every er
 - **Clean room:** the XML is written from our own design notes. COSMIC protocol XML is read
   for facts only, never copied; no interface here is COSMIC's (`check-boundary.sh` row 5).
 - **Licence:** MIT OR Apache-2.0; every XML `<copyright>` carries the notice.
+
+## 8. `desktop-client` (second package, `desktop-client/`)
+
+The workspace has two members: `casement-protocols` (the repo root) and `desktop-client`. The
+second is the one typed Wayland desktop client over the standard wlroots-style protocols
+(amendment A3 of the P1 library plan). It is separate because it depends on no `quire_*`
+protocol today and a consumer that wants only toplevels and outputs on a stock compositor
+should not take ours; its Quire arm (P2) will depend on this package's `client` feature.
+
+| Layer | Path | Built | Depends on |
+| --- | --- | --- | --- |
+| core | `desktop-client/src/` (all but `client/`, `fake/`) | always | thiserror |
+| wire | `desktop-client/src/client/` | feature `client` | wayland-client, wayland-protocols (ext), wayland-protocols-wlr, rustix (memfd, no mmap) |
+| fake | `desktop-client/src/fake/` | feature `fake` | nothing beyond the core |
+
+Core, one concept per file:
+
+| Concept | Home |
+| --- | --- |
+| Keys the wire layer hands out, names | `keys.rs`, `names.rs` |
+| Offered protocols and `supports` | `protocol.rs`, `supports.rs` |
+| Toplevels: state, events, pairing the two protocol handles | `toplevel/` |
+| Workspaces: pending and committed snapshots | `workspace/` |
+| Outputs and configurations | `output/` |
+| Capture: request, events, frame, session | `capture/` |
+| Commands, tickets, errors | `command.rs`, `error.rs` |
+| The one transition `reduce(DesktopState, DesktopEvent)` | `state.rs`, `event.rs`, `reduce.rs` |
+| The seam consumers code against | `desktop.rs` (`trait Desktop`; `DesktopClient` and `FakeDesktop` implement it) |
+| The Quire arm's reserved place | `quire.rs` (`QuireEvent`, empty, `non_exhaustive`) |
+
+Rules: the core names no `wayland_*` crate and does no I/O; the wire layer reads no
+environment (the caller passes the `Connection`); a proxy never enters the state, a key does
+(`ToplevelKey` and the others in `keys.rs`), and `Handles` maps keys back to proxies; no
+`bool` in a field or parameter (`Enabled`, `Preferred`, `CursorMode`, `Supports`,
+`Advance`); every growing public type is `non_exhaustive` with a constructor.
+
+Consumers: sill maps `DesktopState` into its `DesktopView` (app grouping, most-recently-used
+order and Spaces are sill's); cua's toplevel client moves onto it later; `casementctl shot`
+and the testclient use `DesktopCommand::CaptureOutput` and `Frame::to_rgba8`.

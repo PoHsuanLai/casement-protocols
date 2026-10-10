@@ -1,0 +1,46 @@
+//! The proxies, by key.
+
+use std::collections::BTreeMap;
+
+use wayland_client::protocol::wl_output::WlOutput;
+use wayland_client::protocol::wl_seat::WlSeat;
+use wayland_client::protocol::wl_shm::WlShm;
+use wayland_client::protocol::wl_surface::WlSurface;
+use wayland_protocols::ext::foreign_toplevel_list::v1::client::ext_foreign_toplevel_handle_v1::ExtForeignToplevelHandleV1;
+use wayland_protocols::ext::foreign_toplevel_list::v1::client::ext_foreign_toplevel_list_v1::ExtForeignToplevelListV1;
+use wayland_protocols::ext::image_capture_source::v1::client::ext_output_image_capture_source_manager_v1::ExtOutputImageCaptureSourceManagerV1;
+use wayland_protocols::ext::image_copy_capture::v1::client::ext_image_copy_capture_manager_v1::ExtImageCopyCaptureManagerV1;
+use wayland_protocols::ext::workspace::v1::client::ext_workspace_group_handle_v1::ExtWorkspaceGroupHandleV1;
+use wayland_protocols::ext::workspace::v1::client::ext_workspace_handle_v1::ExtWorkspaceHandleV1;
+use wayland_protocols::ext::workspace::v1::client::ext_workspace_manager_v1::ExtWorkspaceManagerV1;
+use wayland_protocols_wlr::foreign_toplevel::v1::client::zwlr_foreign_toplevel_handle_v1::ZwlrForeignToplevelHandleV1;
+use wayland_protocols_wlr::foreign_toplevel::v1::client::zwlr_foreign_toplevel_manager_v1::ZwlrForeignToplevelManagerV1;
+use wayland_protocols_wlr::output_management::v1::client::zwlr_output_head_v1::ZwlrOutputHeadV1;
+use wayland_protocols_wlr::output_management::v1::client::zwlr_output_manager_v1::ZwlrOutputManagerV1;
+use wayland_protocols_wlr::output_management::v1::client::zwlr_output_mode_v1::ZwlrOutputModeV1;
+
+use crate::keys::{GroupKey, HeadKey, ModeKey, SurfaceKey, ToplevelKey, WorkspaceKey};
+use crate::names::OutputName;
+
+/// The bound globals (each present only when offered) and the objects they created.
+#[derive(Debug, Default)]
+pub(super) struct Handles {
+    pub(super) toplevel_list: Option<ExtForeignToplevelListV1>,
+    pub(super) toplevel_manager: Option<ZwlrForeignToplevelManagerV1>,
+    pub(super) workspace_manager: Option<ExtWorkspaceManagerV1>,
+    pub(super) output_manager: Option<ZwlrOutputManagerV1>,
+    pub(super) copy_capture: Option<ExtImageCopyCaptureManagerV1>,
+    pub(super) output_source: Option<ExtOutputImageCaptureSourceManagerV1>,
+    pub(super) shm: Option<WlShm>,
+    /// The seat activation acts on: the first one announced.
+    pub(super) seat: Option<WlSeat>,
+    /// `wl_output`s by the name they announced, for capture sources and fullscreen.
+    pub(super) outputs: BTreeMap<OutputName, WlOutput>,
+    pub(super) listed: BTreeMap<ToplevelKey, ExtForeignToplevelHandleV1>,
+    pub(super) managed: BTreeMap<ToplevelKey, ZwlrForeignToplevelHandleV1>,
+    pub(super) workspaces: BTreeMap<WorkspaceKey, ExtWorkspaceHandleV1>,
+    pub(super) groups: BTreeMap<GroupKey, ExtWorkspaceGroupHandleV1>,
+    pub(super) heads: BTreeMap<HeadKey, ZwlrOutputHeadV1>,
+    pub(super) modes: BTreeMap<ModeKey, ZwlrOutputModeV1>,
+    pub(super) surfaces: BTreeMap<SurfaceKey, WlSurface>,
+}

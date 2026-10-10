@@ -78,4 +78,28 @@ else
   echo "boundary holds: every interface is quire_*_v1 and none is COSMIC's"
 fi
 
+# 6. desktop-client: its core reaches no Wayland crate and no I/O, and names none in source;
+# the wire layer is the only place wayland_* is named.
+dc=desktop-client
+leaked=0
+for dep in $FORBIDDEN rustix; do
+  if cargo tree -p "$dc" -i "$dep" -e normal,build 2>/dev/null | grep -q .; then
+    echo "LEAK: $dc (default features) reaches $dep"
+    leaked=1
+    fail=1
+  fi
+done
+[ "$leaked" -eq 0 ] && echo "boundary holds: $dc (default features) reaches no wayland crate"
+if grep -rnE '\bwayland_(client|server|backend|scanner|protocols|protocols_wlr)\b' desktop-client/src \
+  | grep -vE '^desktop-client/src/client/'; then
+  echo "LEAK: desktop-client names a wayland crate outside src/client/"
+  fail=1
+else
+  echo "boundary holds: desktop-client names a wayland crate only in src/client/"
+fi
+if grep -rnE '\bunsafe\b' desktop-client/src; then
+  echo "LEAK: unsafe in desktop-client/src"
+  fail=1
+fi
+
 exit "$fail"
