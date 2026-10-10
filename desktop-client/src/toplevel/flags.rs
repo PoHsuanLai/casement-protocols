@@ -49,9 +49,11 @@ impl ToplevelFlags {
     /// trailing partial word are skipped.
     pub fn from_array(bytes: &[u8]) -> Self {
         Self::of(
-            bytes.chunks_exact(4).filter_map(|w| {
-                ToplevelFlag::from_code(u32::from_ne_bytes([w[0], w[1], w[2], w[3]]))
-            }),
+            bytes
+                .as_chunks::<4>()
+                .0
+                .iter()
+                .filter_map(|w| ToplevelFlag::from_code(u32::from_ne_bytes(*w))),
         )
     }
 

@@ -68,7 +68,7 @@ fn managed(wire: &Wire, key: ToplevelKey) -> Result<&ZwlrForeignToplevelHandleV1
         .ok_or(CommandError::UnknownToplevel(key))
 }
 
-fn output_of(wire: &Wire, name: &OutputName) -> Result<&WlOutput, CommandError> {
+fn output_of<'w>(wire: &'w Wire, name: &OutputName) -> Result<&'w WlOutput, CommandError> {
     wire.handles
         .outputs
         .get(name)

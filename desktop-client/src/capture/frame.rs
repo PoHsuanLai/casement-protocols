@@ -117,8 +117,8 @@ impl Frame {
         }
         let mut out = Vec::with_capacity(row.saturating_mul(height));
         for line in self.pixels.chunks_exact(stride.max(1)).take(height) {
-            for p in line[..row].chunks_exact(4) {
-                out.extend_from_slice(&swizzle([p[0], p[1], p[2], p[3]]));
+            for p in line[..row].as_chunks::<4>().0 {
+                out.extend_from_slice(&swizzle(*p));
             }
         }
         Ok(out)
