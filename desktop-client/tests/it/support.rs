@@ -35,9 +35,7 @@ pub fn cid(n: u64) -> CaptureId {
 
 /// A state after `events`, from nothing.
 pub fn run(events: impl IntoIterator<Item = DesktopEvent>) -> DesktopState {
-    events
-        .into_iter()
-        .fold(DesktopState::default(), reduce)
+    events.into_iter().fold(DesktopState::default(), reduce)
 }
 
 pub fn top(event: ToplevelEvent) -> DesktopEvent {
