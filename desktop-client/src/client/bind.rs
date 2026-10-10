@@ -8,6 +8,8 @@ use wayland_client::protocol::wl_shm::WlShm;
 
 use super::error::WireError;
 use super::wire::Wire;
+use crate::backend::{DesktopBackend, backend_for};
+use crate::config::ShellBinding;
 use crate::protocol::{Protocol, ProtocolSet};
 
 /// The `wl_output` version that carries `name`: the floor.
@@ -20,7 +22,8 @@ pub(super) fn offered(globals: &GlobalList) -> ProtocolSet {
         .with_list(|list| ProtocolSet::from_interfaces(list.iter().map(|g| g.interface.as_str())))
 }
 
-/// Binds each offered protocol at the version this crate implements, and the first seat, the
+/// Binds each offered protocol at the version this crate implements (`quire_desktop_v1` only on
+/// the Quire arm, `quire_shell_v1` only when the caller holds the shell role), and the first seat, the
 /// shm and every `wl_output` (at version 4 for `name`).
 ///
 /// An output below version 4 is refused with [`WireError::OutputTooOld`]: without the name a
@@ -37,8 +40,19 @@ pub(super) fn bind_all(
     if offered.contains(Protocol::ExtForeignToplevelList) {
         wire.handles.toplevel_list = Some(globals.bind(qh, 1..=1, ())?);
     }
-    if offered.contains(Protocol::WlrForeignToplevelManagement) {
+    // On the Quire arm the toplevels come from the ext list and `quire_desktop_v1`; the wlr
+    // manager is left unbound so one window is not reported twice.
+    let backend = backend_for(&offered);
+    if offered.contains(Protocol::WlrForeignToplevelManagement)
+        && backend != Some(DesktopBackend::Quire)
+    {
         wire.handles.toplevel_manager = Some(globals.bind(qh, 1..=3, ())?);
+    }
+    if backend == Some(DesktopBackend::Quire) {
+        wire.handles.quire_manager = Some(globals.bind(qh, 1..=1, ())?);
+    }
+    if offered.contains(Protocol::QuireShell) && wire.config.shell == ShellBinding::Bind {
+        wire.handles.quire_shell = Some(globals.bind(qh, 1..=1, ())?);
     }
     if offered.contains(Protocol::ExtWorkspace) {
         wire.handles.workspace_manager = Some(globals.bind(qh, 1..=1, ())?);

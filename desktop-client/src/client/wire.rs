@@ -5,9 +5,12 @@ use wayland_client::{Proxy, QueueHandle, WEnum};
 
 use super::handles::Handles;
 use super::pairing::Book;
+use crate::config::DesktopConfig;
 use crate::event::DesktopEvent;
 use crate::names::OutputName;
+use crate::quire::Linker;
 use crate::state::DesktopState;
+use casement_protocols::vocab::WireCode;
 
 /// Everything the dispatch impls touch: the reduced state, the events not yet drained and the
 /// proxies behind the keys.
@@ -17,18 +20,23 @@ pub(super) struct Wire {
     pub(super) events: Vec<DesktopEvent>,
     pub(super) handles: Handles,
     pub(super) book: Book,
+    /// Quire window objects and the ext handles they belong to.
+    pub(super) linker: Linker,
+    pub(super) config: DesktopConfig,
     pub(super) qh: QueueHandle<Wire>,
     next: u64,
 }
 
 impl Wire {
     /// An empty wire on the queue `qh`.
-    pub(super) fn new(qh: QueueHandle<Wire>) -> Self {
+    pub(super) fn new(qh: QueueHandle<Wire>, config: DesktopConfig) -> Self {
         Self {
             state: DesktopState::default(),
             events: Vec::new(),
             handles: Handles::default(),
             book: Book::default(),
+            linker: Linker::default(),
+            config,
             qh,
             next: 1,
         }
@@ -71,4 +79,10 @@ pub(super) fn raw<T: Into<u32>>(value: WEnum<T>) -> u32 {
         WEnum::Value(known) => known.into(),
         WEnum::Unknown(code) => code,
     }
+}
+
+/// The vocab value of an enum argument, `None` for a code the vocab does not know (a newer
+/// compositor): the event is then skipped.
+pub(super) fn vocab<V: WireCode, T: Into<u32>>(value: WEnum<T>) -> Option<V> {
+    V::from_code(raw(value)).ok()
 }

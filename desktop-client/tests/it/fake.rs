@@ -109,3 +109,170 @@ fn configurations_get_their_own_tickets() {
         .unwrap();
     assert!(matches!(ticket, Ticket::Config(_)));
 }
+
+// The Quire arm.
+
+fn quire_fake() -> FakeDesktop {
+    offering(&[
+        Protocol::ExtForeignToplevelList,
+        Protocol::QuireDesktop,
+        Protocol::QuireShell,
+    ])
+}
+
+/// Scripts a toplevel with an identifier, its Quire window, an app and a Space.
+fn populate(desktop: &mut FakeDesktop) {
+    use desktop_client::quire::{QuireEvent, SpaceEvent, WindowEvent};
+    use desktop_client::{AppKey, SpaceKey, ToplevelIdentifier};
+    for event in [
+        top(ToplevelEvent::Opened(tk(1))),
+        top_change(
+            tk(1),
+            ToplevelChange::Identifier(ToplevelIdentifier::new("w-1")),
+        ),
+        top(ToplevelEvent::Done(tk(1))),
+        DesktopEvent::Quire(QuireEvent::Window(WindowEvent::Opened(tk(1)))),
+        DesktopEvent::Quire(QuireEvent::App(desktop_client::quire::AppEvent::Opened(
+            AppKey::new(1),
+        ))),
+        DesktopEvent::Quire(QuireEvent::Space(SpaceEvent::Opened(SpaceKey::new(1)))),
+    ] {
+        desktop.script(event);
+    }
+    desktop.advance_all();
+}
+
+#[test]
+fn the_quire_commands_are_recorded_when_their_targets_exist() {
+    use casement_protocols::vocab::{Assign, PlaceTarget};
+    use desktop_client::{AppKey, SpaceKey};
+    let mut desktop = quire_fake();
+    populate(&mut desktop);
+    let commands = [
+        DesktopCommand::Place {
+            toplevel: tk(1),
+            target: PlaceTarget::TopRight,
+        },
+        DesktopCommand::MoveToSpace {
+            toplevel: tk(1),
+            space: SpaceKey::new(1),
+        },
+        DesktopCommand::AssignSpaces {
+            toplevel: tk(1),
+            assign: Assign::ThisSpace,
+        },
+        DesktopCommand::ActivateSpace(SpaceKey::new(1)),
+        DesktopCommand::QuitApp(AppKey::new(1)),
+        DesktopCommand::CreateSpace {
+            output: OutputName::new("DP-1"),
+        },
+        DesktopCommand::Close(tk(1)),
+    ];
+    for command in commands.clone() {
+        assert_eq!(desktop.send(command), Ok(Ticket::Sent));
+    }
+    assert_eq!(desktop.sent(), &commands);
+}
+
+#[test]
+fn a_quire_command_naming_nothing_is_refused_and_not_recorded() {
+    use casement_protocols::vocab::PlaceTarget;
+    use desktop_client::{AppKey, SpaceKey};
+    let mut desktop = quire_fake();
+    populate(&mut desktop);
+    assert_eq!(
+        desktop.send(DesktopCommand::Place {
+            toplevel: tk(9),
+            target: PlaceTarget::Fill,
+        }),
+        Err(CommandError::UnknownToplevel(tk(9)))
+    );
+    assert_eq!(
+        desktop.send(DesktopCommand::ActivateSpace(SpaceKey::new(9))),
+        Err(CommandError::UnknownSpace(SpaceKey::new(9)))
+    );
+    assert_eq!(
+        desktop.send(DesktopCommand::HideApp(AppKey::new(9))),
+        Err(CommandError::UnknownApp(AppKey::new(9)))
+    );
+    assert!(desktop.sent().is_empty());
+}
+
+#[test]
+fn a_quire_command_on_a_wlr_only_compositor_is_unsupported() {
+    let mut desktop = offering(&[Protocol::WlrForeignToplevelManagement]);
+    let refused = desktop.send(DesktopCommand::QuitApp(desktop_client::AppKey::new(1)));
+    assert!(matches!(
+        refused,
+        Err(CommandError::Unsupported {
+            needs: Protocol::QuireDesktop,
+            ..
+        })
+    ));
+}
+
+#[test]
+fn shell_commands_need_the_shell_role() {
+    use casement_protocols::vocab::Toggle;
+    let command = DesktopCommand::ShowDesktop(Toggle::On);
+    let mut skipped = quire_fake();
+    assert!(matches!(
+        skipped.send(command.clone()),
+        Err(CommandError::NotBound {
+            needs: Protocol::QuireShell,
+            ..
+        })
+    ));
+    let mut shell = FakeDesktop::with_config(
+        ProtocolSet::empty().with(Protocol::QuireShell),
+        desktop_client::DesktopConfig::holding_shell(),
+    );
+    assert_eq!(shell.send(command.clone()), Ok(Ticket::Sent));
+    assert_eq!(shell.sent(), &[command]);
+}
+
+#[test]
+fn the_minimise_target_needs_the_window_identifier_on_the_quire_arm() {
+    use desktop_client::{Rect, SurfaceKey};
+    let target = |toplevel| DesktopCommand::SetMinimiseTarget {
+        toplevel,
+        surface: SurfaceKey::new(1),
+        rect: Rect::new(0, 0, 40, 40),
+    };
+    let mut desktop = FakeDesktop::with_config(
+        ProtocolSet::empty()
+            .with(Protocol::ExtForeignToplevelList)
+            .with(Protocol::QuireDesktop)
+            .with(Protocol::QuireShell),
+        desktop_client::DesktopConfig::holding_shell(),
+    );
+    desktop.script(top(ToplevelEvent::Opened(tk(1))));
+    desktop.script(top(ToplevelEvent::Done(tk(1))));
+    desktop.advance_all();
+    assert_eq!(
+        desktop.send(target(tk(1))),
+        Err(CommandError::NoIdentifier(tk(1)))
+    );
+    assert_eq!(
+        desktop.send(target(tk(2))),
+        Err(CommandError::UnknownToplevel(tk(2)))
+    );
+    desktop.script(top_change(
+        tk(1),
+        ToplevelChange::Identifier(desktop_client::ToplevelIdentifier::new("w-1")),
+    ));
+    desktop.advance_all();
+    assert_eq!(desktop.send(target(tk(1))), Ok(Ticket::Sent));
+}
+
+#[test]
+fn quire_events_reduce_through_the_fake_like_any_other() {
+    use desktop_client::quire::{QuireEvent, ShellEvent};
+    let mut desktop = quire_fake();
+    desktop.script(DesktopEvent::Quire(QuireEvent::Shell(
+        ShellEvent::SwitcherShown { selected: 3 },
+    )));
+    desktop.advance_all();
+    assert_eq!(desktop.state().quire.shell().switcher.selected(), Some(3));
+    assert_eq!(desktop.drain_events().len(), 1);
+}

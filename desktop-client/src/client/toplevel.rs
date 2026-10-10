@@ -103,11 +103,12 @@ pub(super) fn on_listed(
         Event::Title { title } => change(wire, key, ToplevelChange::Title(title)),
         Event::AppId { app_id } => change(wire, key, ToplevelChange::AppId(app_id)),
         Event::Identifier { identifier } => {
-            change(
-                wire,
-                key,
-                ToplevelChange::Identifier(ToplevelIdentifier::new(identifier)),
-            );
+            let identifier = ToplevelIdentifier::new(identifier);
+            change(wire, key, ToplevelChange::Identifier(identifier.clone()));
+            // On the Quire arm the window object of the same identifier may be waiting.
+            for event in wire.linker.listed(key, identifier) {
+                wire.emit(DesktopEvent::Quire(event));
+            }
         }
         Event::Done => {
             if wire.handles.toplevel_manager.is_some() {
@@ -119,6 +120,7 @@ pub(super) fn on_listed(
         }
         Event::Closed => {
             wire.book.drop_listed(key);
+            wire.linker.unlisted(key);
             toplevel_event(wire, ToplevelEvent::Closed(key));
             if let Some(handle) = wire.handles.listed.remove(&key) {
                 handle.destroy();

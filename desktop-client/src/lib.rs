@@ -1,6 +1,6 @@
 //! One typed Wayland desktop client, portable to any wlroots-style compositor.
 //!
-//! It tracks four things the desktop shell and the agent tier both need:
+//! It tracks five things the desktop shell and the agent tier both need:
 //!
 //! - toplevels: identity from `ext-foreign-toplevel-list-v1`, state and actions from
 //!   `zwlr-foreign-toplevel-management-v1` ([`toplevel`]);
@@ -8,10 +8,12 @@
 //! - outputs: `zwlr-output-management-v1`, including applying and testing a configuration
 //!   ([`output`]);
 //! - output capture: `ext-image-copy-capture-v1` over `ext-output-image-capture-source-v1`,
-//!   one frame of an output into shared memory ([`capture`]).
-//!
-//! A Quire arm (`quire_desktop_v1`, `quire_window_v1`) arrives at P2; [`quire`] reserves its
-//! place and nothing more.
+//!   one frame of an output into shared memory ([`capture`]);
+//! - the Quire arm: apps, windows (role, place, geometry, emphasis, placement), Spaces and the
+//!   shell's notes (modifiers, switcher, overview, hot corners, reveals) from
+//!   `quire_desktop_v1` and `quire_shell_v1` ([`quire`]). [`backend_for`] picks it from the
+//!   offered globals when `quire_desktop_v1` and the ext list are both there; otherwise the
+//!   wlr arm serves the toplevels, and the Quire commands are refused by [`supports`].
 //!
 //! # Layers
 //!
@@ -20,7 +22,9 @@
 //!   [`supports`], which answers from the offered [`ProtocolSet`].
 //! - `client` (feature): `client::DesktopClient` binds the globals on a `wayland_client`
 //!   `Connection` the caller supplies, turns protocol events into [`DesktopEvent`]s and sends
-//!   commands. The library reads no environment variable and opens no socket.
+//!   commands. The library reads no environment variable and opens no socket on its own: the
+//!   caller connects, or names the route (`client::WaylandRoute`: the environment, or a
+//!   connection handed over as a file descriptor, as `Compositor1.Connect("shell")` returns).
 //! - `fake` (feature): `fake::FakeDesktop` takes scripted events and records the commands, so
 //!   a consumer tests against the same [`Desktop`] trait without a compositor.
 //!
@@ -56,6 +60,9 @@ pub mod quire;
 pub mod toplevel;
 pub mod workspace;
 
+mod admit;
+mod backend;
+mod config;
 mod event;
 mod reduce;
 mod state;
@@ -66,17 +73,21 @@ pub mod client;
 #[cfg(feature = "fake")]
 pub mod fake;
 
+pub use admit::admit;
+pub use backend::{DesktopBackend, backend_for};
 pub use capture::{CaptureRequest, Frame};
 pub use command::{CommandKind, DesktopCommand, Ticket};
+pub use config::{DesktopConfig, ShellBinding};
 pub use desktop::Desktop;
 pub use error::CommandError;
 pub use event::DesktopEvent;
 pub use geometry::{Point, Rect, Size};
 pub use keys::{
-    CaptureId, ConfigId, GroupKey, HeadKey, ModeKey, SurfaceKey, ToplevelKey, WorkspaceKey,
+    AppKey, CaptureId, ConfigId, GroupKey, HeadKey, ModeKey, SpaceKey, SurfaceKey, ToplevelKey,
+    WorkspaceKey,
 };
-pub use names::{OutputName, ToplevelIdentifier};
+pub use names::{AppId, OutputName, SpaceId, ToplevelIdentifier};
 pub use protocol::{Protocol, ProtocolSet};
 pub use reduce::reduce;
 pub use state::DesktopState;
-pub use supports::{Supports, missing, requires, supports};
+pub use supports::{Supports, missing, requires, requires_on, supports};

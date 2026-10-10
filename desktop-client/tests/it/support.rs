@@ -69,3 +69,23 @@ pub fn mode_change(mode: ModeKey, change: ModeChange) -> DesktopEvent {
 pub fn cap(id: CaptureId, event: CaptureEvent) -> DesktopEvent {
     DesktopEvent::Capture { id, event }
 }
+
+pub fn ak(n: u64) -> desktop_client::AppKey {
+    desktop_client::AppKey::new(n)
+}
+
+pub fn sk(n: u64) -> desktop_client::SpaceKey {
+    desktop_client::SpaceKey::new(n)
+}
+
+pub fn quire(event: desktop_client::quire::QuireEvent) -> DesktopEvent {
+    DesktopEvent::Quire(event)
+}
+
+pub fn window_change(
+    key: ToplevelKey,
+    change: desktop_client::quire::WindowChange,
+) -> DesktopEvent {
+    use desktop_client::quire::{QuireEvent, WindowEvent};
+    quire(QuireEvent::Window(WindowEvent::Changed { key, change }))
+}

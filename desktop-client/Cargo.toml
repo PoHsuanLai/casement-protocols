@@ -10,6 +10,7 @@ publish.workspace = true
 
 [dependencies]
 thiserror = { workspace = true }
+casement-protocols = { workspace = true }
 wayland-client = { workspace = true, optional = true }
 wayland-protocols = { workspace = true, optional = true }
 wayland-protocols-wlr = { workspace = true, optional = true }
@@ -19,6 +20,7 @@ rustix = { workspace = true, optional = true }
 default = []
 # The wire layer: binds the globals on a caller-supplied connection.
 client = [
+  "casement-protocols/client",
   "dep:wayland-client",
   "dep:wayland-protocols",
   "dep:wayland-protocols-wlr",

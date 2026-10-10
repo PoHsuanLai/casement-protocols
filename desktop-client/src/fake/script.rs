@@ -2,24 +2,29 @@
 
 use std::collections::VecDeque;
 
+use crate::admit::admit;
 use crate::command::{DesktopCommand, Ticket};
+use crate::config::DesktopConfig;
 use crate::desktop::Desktop;
 use crate::error::CommandError;
 use crate::event::DesktopEvent;
 use crate::keys::{CaptureId, ConfigId};
 use crate::protocol::ProtocolSet;
+use crate::quire::check_targets;
 use crate::reduce::reduce;
 use crate::state::DesktopState;
-use crate::supports::missing;
 
 /// A [`Desktop`] fed by a script.
 ///
 /// Queue events with [`FakeDesktop::script`]; [`FakeDesktop::advance`] reduces the next one
 /// into the state (as the wire client does when a compositor speaks). Commands are checked
-/// with [`crate::supports`] like the real client does, then recorded.
+/// with `admit` like the real client does (offered, and bound as the
+/// [`DesktopConfig`] says), the Quire commands' targets are looked up in the state, and then they
+/// are recorded.
 #[derive(Debug)]
 pub struct FakeDesktop {
     state: DesktopState,
+    config: DesktopConfig,
     script: VecDeque<DesktopEvent>,
     applied: Vec<DesktopEvent>,
     sent: Vec<DesktopCommand>,
@@ -29,8 +34,31 @@ pub struct FakeDesktop {
 impl FakeDesktop {
     /// A fake whose compositor offers `protocols`.
     pub fn new(protocols: ProtocolSet) -> Self {
+        Self::with_config(protocols, DesktopConfig::default())
+    }
+
+    /// A fake whose compositor offers `protocols`, for a client configured with `config`
+    /// (`DesktopConfig::holding_shell()` binds `quire_shell_v1`).
+    ///
+    /// ```
+    /// use desktop_client::fake::FakeDesktop;
+    /// use desktop_client::{Desktop, DesktopCommand, DesktopConfig, Protocol, ProtocolSet};
+    /// use casement_protocols::vocab::{OverviewMode, Toggle};
+    ///
+    /// let offered = ProtocolSet::empty().with(Protocol::QuireShell);
+    /// let command = DesktopCommand::Overview {
+    ///     mode: OverviewMode::MissionControl,
+    ///     toggle: Toggle::On,
+    /// };
+    /// let mut skipped = FakeDesktop::new(offered.clone());
+    /// assert!(skipped.send(command.clone()).is_err());
+    /// let mut shell = FakeDesktop::with_config(offered, DesktopConfig::holding_shell());
+    /// assert!(shell.send(command).is_ok());
+    /// ```
+    pub fn with_config(protocols: ProtocolSet, config: DesktopConfig) -> Self {
         Self {
             state: DesktopState::new(protocols),
+            config,
             script: VecDeque::new(),
             applied: Vec::new(),
             sent: Vec::new(),
@@ -95,12 +123,8 @@ impl Desktop for FakeDesktop {
     }
 
     fn send(&mut self, command: DesktopCommand) -> Result<Ticket, CommandError> {
-        if let Some(needs) = missing(&self.state.protocols, &command) {
-            return Err(CommandError::Unsupported {
-                command: command.kind(),
-                needs,
-            });
-        }
+        admit(&self.state.protocols, &self.config, &command)?;
+        check_targets(&self.state, &command)?;
         let ticket = match &command {
             DesktopCommand::ApplyOutputs(_) | DesktopCommand::TestOutputs(_) => {
                 Ticket::Config(ConfigId::new(self.mint()))

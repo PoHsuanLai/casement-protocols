@@ -34,3 +34,38 @@ impl ToplevelIdentifier {
         &self.0
     }
 }
+
+/// An app's key as the desktop names it (`quire_desktop_app_v1.identity`'s `key`): the string
+/// the rest of the desktop uses for the app, safe to store and to send to another process.
+/// [`crate::AppKey`] is this client's number for the same app's protocol object.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub struct AppId(String);
+
+impl AppId {
+    /// The app key `id`.
+    pub fn new(id: impl Into<String>) -> Self {
+        Self(id.into())
+    }
+
+    /// The text.
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+/// A Space's stable id (`quire_desktop_space_v1.id`), also the `id` of its ext-workspace
+/// workspace. [`crate::SpaceKey`] is this client's number for the Space's protocol object.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub struct SpaceId(String);
+
+impl SpaceId {
+    /// The Space id `id`.
+    pub fn new(id: impl Into<String>) -> Self {
+        Self(id.into())
+    }
+
+    /// The text.
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}

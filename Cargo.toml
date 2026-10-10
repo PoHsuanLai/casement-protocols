@@ -33,6 +33,10 @@ wayland-server = "0.31"
 bitflags = "2"
 quick-xml = "0.41"
 
+# This workspace's own library crate, for desktop-client's vocab (default features: serde and
+# thiserror only) and, under its `client` feature, the generated quire_* bindings.
+casement-protocols = { path = "." }
+
 [workspace.lints.rust]
 unsafe_code = "deny"
 missing_debug_implementations = "warn"

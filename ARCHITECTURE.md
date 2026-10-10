@@ -159,15 +159,17 @@ holds the frozen interface as tables (every message with its arguments, every er
 ## 8. `desktop-client` (second package, `desktop-client/`)
 
 The workspace has two members: `casement-protocols` (the repo root) and `desktop-client`. The
-second is the one typed Wayland desktop client over the standard wlroots-style protocols
-(amendment A3 of the P1 library plan). It is separate because it depends on no `quire_*`
-protocol today and a consumer that wants only toplevels and outputs on a stock compositor
-should not take ours; its Quire arm (P2) will depend on this package's `client` feature.
+second is the one typed Wayland desktop client (amendment A3 of the P1 library plan): the
+standard wlroots-style protocols plus the Quire arm (`quire_desktop_v1`, `quire_shell_v1`,
+filled at P2-Z-dc). It is a separate package so a consumer that wants only toplevels and
+outputs on a stock compositor does not take the private bindings: its core takes
+`casement-protocols` with default features (the pure vocab, serde and thiserror only), and its
+`client` feature takes `casement-protocols/client` for the generated bindings.
 
 | Layer | Path | Built | Depends on |
 | --- | --- | --- | --- |
-| core | `desktop-client/src/` (all but `client/`, `fake/`) | always | thiserror |
-| wire | `desktop-client/src/client/` | feature `client` | wayland-client, wayland-protocols (ext), wayland-protocols-wlr, rustix (memfd, no mmap) |
+| core | `desktop-client/src/` (all but `client/`, `fake/`) | always | thiserror, casement-protocols (vocab only) |
+| wire | `desktop-client/src/client/` | feature `client` | wayland-client, wayland-protocols (ext), wayland-protocols-wlr, rustix (memfd, no mmap), casement-protocols `client` (the `quire_*` bindings) |
 | fake | `desktop-client/src/fake/` | feature `fake` | nothing beyond the core |
 
 Core, one concept per file:
@@ -175,7 +177,7 @@ Core, one concept per file:
 | Concept | Home |
 | --- | --- |
 | Keys the wire layer hands out, names | `keys.rs`, `names.rs` |
-| Offered protocols and `supports` | `protocol.rs`, `supports.rs` |
+| Offered protocols, the arm they choose, `supports` and `admit` | `protocol.rs`, `backend.rs` (`backend_for`), `supports.rs` (`requires_on`), `admit.rs`, `config.rs` |
 | Toplevels: state, events, pairing the two protocol handles | `toplevel/` |
 | Workspaces: pending and committed snapshots | `workspace/` |
 | Outputs and configurations | `output/` |
@@ -183,10 +185,32 @@ Core, one concept per file:
 | Commands, tickets, errors | `command.rs`, `error.rs` |
 | The one transition `reduce(DesktopState, DesktopEvent)` | `state.rs`, `event.rs`, `reduce.rs` |
 | The seam consumers code against | `desktop.rs` (`trait Desktop`; `DesktopClient` and `FakeDesktop` implement it) |
-| The Quire arm's reserved place | `quire.rs` (`QuireEvent`, empty, `non_exhaustive`) |
+| The Quire arm: apps, windows, Spaces, the shell's notes, the window-to-handle `Linker`, the projection onto toplevel flags | `quire/` (`app.rs`, `window.rs`, `space.rs`, `shell.rs`, `link.rs`, `project.rs`, `targets.rs`, `reduce.rs`, `set.rs`) |
 
-Rules: the core names no `wayland_*` crate and does no I/O; the wire layer reads no
-environment (the caller passes the `Connection`); a proxy never enters the state, a key does
+**Choosing the arm.** `backend_for(&ProtocolSet)` reads the offered globals only (never a
+name or the environment): Quire when `quire_desktop_manager_v1` and the ext list are both
+offered, else wlr, else the ext list alone. On the Quire arm the plain window commands
+(`Activate`, `Close`, `Minimise`, ...) go to `quire_desktop_window_v1`, the wlr manager is not
+bound, and a window is the ext handle (title, app id, identifier) plus the Quire window
+(everything else) under one `ToplevelKey`: `Linker` matches the manager's window object to the
+ext handle by identifier, whichever arrives first. The reducer projects the Quire state onto
+`Toplevel.flags` (filled is maximised, the key window is activated), `parent` and `outputs`, so
+a consumer that reads only toplevels is unchanged. `quire_shell_v1` is bound only when the
+caller says it holds the shell role (`DesktopConfig::holding_shell()`); `admit` returns
+`CommandError::NotBound` for a shell command otherwise. A shell connection comes either from
+the environment or handed over (`client::WaylandRoute::{Environment, Handed(OwnedFd)}`, the
+shape of shell-host's own `WaylandRoute`).
+
+**Recipe: a new Quire command.** Add the variant and its `CommandKind` (`command.rs`), its
+protocols in `requires_on` (`supports.rs`), its target check in `quire::check_targets`, its
+request in `client/quire_commands.rs` (`carries` and `send`), then a row in
+`tests/it/protocol.rs` `quire_only` and a fake test. **A new Quire event:** the variant in the
+object's `…Change`/`…Event`, its row in `quire/<object>.rs` `apply`, the dispatch in
+`client/quire.rs` (or `client/shell.rs`), and a table row in `tests/it/quire.rs`.
+
+Rules: the core names no `wayland_*` crate and does no I/O; the wire layer reads the
+environment only for `WaylandRoute::Environment`, which the caller picks (otherwise the caller
+passes the `Connection`); a proxy never enters the state, a key does
 (`ToplevelKey` and the others in `keys.rs`), and `Handles` maps keys back to proxies; no
 `bool` in a field or parameter (`Enabled`, `Preferred`, `CursorMode`, `Supports`,
 `Advance`); every growing public type is `non_exhaustive` with a constructor.

@@ -10,27 +10,26 @@ use wayland_protocols_wlr::foreign_toplevel::v1::client::zwlr_foreign_toplevel_h
 use super::capture;
 use super::error::WireError;
 use super::output;
+use super::quire_commands;
 use super::wire::Wire;
+use crate::admit::admit;
+use crate::backend::DesktopBackend;
 use crate::command::{DesktopCommand, Ticket};
 use crate::error::CommandError;
 use crate::geometry::Rect;
 use crate::keys::{GroupKey, SurfaceKey, ToplevelKey, WorkspaceKey};
 use crate::names::OutputName;
 use crate::output::ConfigPurpose;
-use crate::supports::missing;
 
-/// Checks `command` with `supports`, resolves its keys against the handles and sends it.
+/// Checks `command` with `admit` (offered, and bound), resolves its keys against the handles
+/// and sends it: to the Quire objects when the offer chose the Quire arm or the command is a
+/// Quire-only one, otherwise to the wlr handles.
 /// A key with no handle is `CommandError::Unknown…`; workspace requests are staged by the
 /// compositor until `CommitWorkspaces`; a configuration is validated against the state first
 /// and completed with every unmentioned enabled head.
 pub(super) fn send(wire: &mut Wire, command: DesktopCommand) -> Result<Ticket, WireError> {
-    if let Some(needs) = missing(&wire.state.protocols, &command) {
-        return Err(CommandError::Unsupported {
-            command: command.kind(),
-            needs,
-        }
-        .into());
-    }
+    admit(&wire.state.protocols, &wire.config, &command)?;
+    let quire_arm = wire.state.backend() == Some(DesktopBackend::Quire);
     match command {
         DesktopCommand::ApplyOutputs(config) => Ok(Ticket::Config(output::submit(
             wire,
@@ -52,6 +51,10 @@ pub(super) fn send(wire: &mut Wire, command: DesktopCommand) -> Result<Ticket, W
         | DesktopCommand::CreateWorkspace { .. }
         | DesktopCommand::CommitWorkspaces => {
             workspace(wire, command)?;
+            Ok(Ticket::Sent)
+        }
+        other if quire_commands::carries(&other, quire_arm) => {
+            quire_commands::send(wire, other)?;
             Ok(Ticket::Sent)
         }
         other => {

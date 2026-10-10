@@ -27,6 +27,6 @@ pub enum DesktopEvent {
         /// What happened.
         event: CaptureEvent,
     },
-    /// An event of the Quire arm (P2; never produced yet).
+    /// An event of the Quire arm.
     Quire(QuireEvent),
 }

@@ -2,14 +2,18 @@
 
 use crate::capture::CaptureRequest;
 use crate::geometry::Rect;
-use crate::keys::{CaptureId, ConfigId, GroupKey, SurfaceKey, ToplevelKey, WorkspaceKey};
+use crate::keys::{
+    AppKey, CaptureId, ConfigId, GroupKey, SpaceKey, SurfaceKey, ToplevelKey, WorkspaceKey,
+};
 use crate::names::OutputName;
 use crate::output::OutputConfig;
+use casement_protocols::vocab::{Assign, OverviewMode, PlaceTarget, ShellRole, Toggle};
 
 /// A request to the compositor. Targets are keys from [`crate::DesktopState`].
 ///
-/// The window-placement commands a Quire compositor offers are not here: wlr cannot place a
-/// window (FINDINGS). They arrive with the Quire arm at P2.
+/// The commands from `Place` on are the Quire arm's: wlr cannot place a window, move it to a
+/// Space or tell an app to hide (FINDINGS). Which protocol carries each command is
+/// [`crate::requires_on`]'s table; [`crate::supports`] answers it for an offer.
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub enum DesktopCommand {
@@ -72,6 +76,82 @@ pub enum DesktopCommand {
     TestOutputs(OutputConfig),
     /// Capture one frame of an output.
     CaptureOutput(CaptureRequest),
+    /// Place a window: a tile zone, fill, centre or restore. Quire arm.
+    Place {
+        /// The toplevel.
+        toplevel: ToplevelKey,
+        /// Where.
+        target: PlaceTarget,
+    },
+    /// Move a window to a Space. Quire arm.
+    MoveToSpace {
+        /// The toplevel.
+        toplevel: ToplevelKey,
+        /// The Space.
+        space: SpaceKey,
+    },
+    /// Assign a window to every Space, the one it is on, or none. Quire arm.
+    AssignSpaces {
+        /// The toplevel.
+        toplevel: ToplevelKey,
+        /// Which Spaces.
+        assign: Assign,
+    },
+    /// Forget a window's minimise target (`quire_shell_v1`). Quire arm, shell role.
+    ClearMinimiseTarget(ToplevelKey),
+    /// Switch to a Space. Quire arm.
+    ActivateSpace(SpaceKey),
+    /// Remove a Space; its windows move to the neighbouring desktop Space. Quire arm.
+    RemoveSpace(SpaceKey),
+    /// Move a Space to a position on its output (0 is leftmost). Quire arm.
+    MoveSpace {
+        /// The Space.
+        space: SpaceKey,
+        /// The new position.
+        position: u32,
+    },
+    /// Add a Space on an output; it arrives as a `QuireEvent::Space`. Quire arm.
+    CreateSpace {
+        /// The output.
+        output: OutputName,
+    },
+    /// Bring an app forward and raise its windows. Quire arm.
+    ActivateApp(AppKey),
+    /// Hide an app. Quire arm.
+    HideApp(AppKey),
+    /// Show a hidden app. Quire arm.
+    UnhideApp(AppKey),
+    /// Hide every app but this one. Quire arm.
+    HideOtherApps(AppKey),
+    /// Ask an app to quit; it may refuse or ask the person first. Quire arm.
+    QuitApp(AppKey),
+    /// End an app's processes. Quire arm.
+    ForceQuitApp(AppKey),
+    /// Activate an app that has no windows; the compositor answers the shell with
+    /// `ShellEvent::Reopen`. Quire arm.
+    ReopenApp(AppKey),
+    /// Tell the compositor what a registered layer surface is (bar, dock, ...). Quire arm,
+    /// shell role.
+    SetShellRole {
+        /// The caller's surface.
+        surface: SurfaceKey,
+        /// Its role.
+        role: ShellRole,
+    },
+    /// The person picked an app in the switcher, by the index the compositor gave. Quire arm,
+    /// shell role.
+    PickSwitcher(u32),
+    /// The person dismissed the switcher. Quire arm, shell role.
+    CancelSwitcher,
+    /// Open or close an overview. Quire arm, shell role.
+    Overview {
+        /// Which overview.
+        mode: OverviewMode,
+        /// Open (`On`) or close (`Off`).
+        toggle: Toggle,
+    },
+    /// Move every window aside, or back. Quire arm, shell role.
+    ShowDesktop(Toggle),
 }
 
 /// The variant of a [`DesktopCommand`] without its data, for errors and logs.
@@ -114,6 +194,46 @@ pub enum CommandKind {
     TestOutputs,
     /// [`DesktopCommand::CaptureOutput`].
     CaptureOutput,
+    /// [`DesktopCommand::Place`].
+    Place,
+    /// [`DesktopCommand::MoveToSpace`].
+    MoveToSpace,
+    /// [`DesktopCommand::AssignSpaces`].
+    AssignSpaces,
+    /// [`DesktopCommand::ClearMinimiseTarget`].
+    ClearMinimiseTarget,
+    /// [`DesktopCommand::ActivateSpace`].
+    ActivateSpace,
+    /// [`DesktopCommand::RemoveSpace`].
+    RemoveSpace,
+    /// [`DesktopCommand::MoveSpace`].
+    MoveSpace,
+    /// [`DesktopCommand::CreateSpace`].
+    CreateSpace,
+    /// [`DesktopCommand::ActivateApp`].
+    ActivateApp,
+    /// [`DesktopCommand::HideApp`].
+    HideApp,
+    /// [`DesktopCommand::UnhideApp`].
+    UnhideApp,
+    /// [`DesktopCommand::HideOtherApps`].
+    HideOtherApps,
+    /// [`DesktopCommand::QuitApp`].
+    QuitApp,
+    /// [`DesktopCommand::ForceQuitApp`].
+    ForceQuitApp,
+    /// [`DesktopCommand::ReopenApp`].
+    ReopenApp,
+    /// [`DesktopCommand::SetShellRole`].
+    SetShellRole,
+    /// [`DesktopCommand::PickSwitcher`].
+    PickSwitcher,
+    /// [`DesktopCommand::CancelSwitcher`].
+    CancelSwitcher,
+    /// [`DesktopCommand::Overview`].
+    Overview,
+    /// [`DesktopCommand::ShowDesktop`].
+    ShowDesktop,
 }
 
 impl DesktopCommand {
@@ -138,6 +258,26 @@ impl DesktopCommand {
             Self::ApplyOutputs(_) => CommandKind::ApplyOutputs,
             Self::TestOutputs(_) => CommandKind::TestOutputs,
             Self::CaptureOutput(_) => CommandKind::CaptureOutput,
+            Self::Place { .. } => CommandKind::Place,
+            Self::MoveToSpace { .. } => CommandKind::MoveToSpace,
+            Self::AssignSpaces { .. } => CommandKind::AssignSpaces,
+            Self::ClearMinimiseTarget(_) => CommandKind::ClearMinimiseTarget,
+            Self::ActivateSpace(_) => CommandKind::ActivateSpace,
+            Self::RemoveSpace(_) => CommandKind::RemoveSpace,
+            Self::MoveSpace { .. } => CommandKind::MoveSpace,
+            Self::CreateSpace { .. } => CommandKind::CreateSpace,
+            Self::ActivateApp(_) => CommandKind::ActivateApp,
+            Self::HideApp(_) => CommandKind::HideApp,
+            Self::UnhideApp(_) => CommandKind::UnhideApp,
+            Self::HideOtherApps(_) => CommandKind::HideOtherApps,
+            Self::QuitApp(_) => CommandKind::QuitApp,
+            Self::ForceQuitApp(_) => CommandKind::ForceQuitApp,
+            Self::ReopenApp(_) => CommandKind::ReopenApp,
+            Self::SetShellRole { .. } => CommandKind::SetShellRole,
+            Self::PickSwitcher(_) => CommandKind::PickSwitcher,
+            Self::CancelSwitcher => CommandKind::CancelSwitcher,
+            Self::Overview { .. } => CommandKind::Overview,
+            Self::ShowDesktop(_) => CommandKind::ShowDesktop,
         }
     }
 }

@@ -19,15 +19,18 @@ pub enum Protocol {
     ExtImageCopyCapture,
     /// `ext_output_image_capture_source_manager_v1`: an output as a capture source.
     ExtOutputImageCaptureSource,
-    /// `quire_desktop_manager_v1` (P2; not used yet).
+    /// `quire_desktop_manager_v1`: apps, windows and Spaces (the Quire arm).
     QuireDesktop,
-    /// `quire_window_manager_v1` (P2; not used yet).
+    /// `quire_window_manager_v1`: an app's own say about its toplevels. Recorded in the offer;
+    /// this crate does not bind it (apps bind it for their own windows).
     QuireWindow,
+    /// `quire_shell_v1`: the shell's roles and system events, on Shell connections only.
+    QuireShell,
 }
 
 impl Protocol {
     /// Every protocol, in declaration order.
-    pub const ALL: [Protocol; 8] = [
+    pub const ALL: [Protocol; 9] = [
         Protocol::ExtForeignToplevelList,
         Protocol::WlrForeignToplevelManagement,
         Protocol::ExtWorkspace,
@@ -36,6 +39,7 @@ impl Protocol {
         Protocol::ExtOutputImageCaptureSource,
         Protocol::QuireDesktop,
         Protocol::QuireWindow,
+        Protocol::QuireShell,
     ];
 
     /// The global's interface name in the registry.
@@ -49,6 +53,7 @@ impl Protocol {
             Self::ExtOutputImageCaptureSource => "ext_output_image_capture_source_manager_v1",
             Self::QuireDesktop => "quire_desktop_manager_v1",
             Self::QuireWindow => "quire_window_manager_v1",
+            Self::QuireShell => "quire_shell_v1",
         }
     }
 

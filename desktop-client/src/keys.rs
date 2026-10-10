@@ -28,6 +28,14 @@ key! {
     ToplevelKey
 }
 key! {
+    /// One app of the Quire arm (`quire_desktop_app_v1`).
+    AppKey
+}
+key! {
+    /// One Space of the Quire arm (`quire_desktop_space_v1`).
+    SpaceKey
+}
+key! {
     /// One workspace (`ext_workspace_handle_v1`).
     WorkspaceKey
 }

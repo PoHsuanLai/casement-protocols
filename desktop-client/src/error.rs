@@ -1,7 +1,7 @@
 //! Why a command cannot be sent.
 
 use crate::command::CommandKind;
-use crate::keys::{GroupKey, SurfaceKey, ToplevelKey, WorkspaceKey};
+use crate::keys::{AppKey, GroupKey, SpaceKey, SurfaceKey, ToplevelKey, WorkspaceKey};
 use crate::names::OutputName;
 use crate::output::ConfigError;
 use crate::protocol::Protocol;
@@ -18,9 +18,31 @@ pub enum CommandError {
         /// The first missing protocol.
         needs: Protocol,
     },
+    /// The compositor offers a protocol the command needs, but this client was not asked to bind
+    /// it (see [`crate::DesktopConfig`]).
+    #[error("{command:?} needs {needs}, which this client did not bind")]
+    NotBound {
+        /// The command.
+        command: CommandKind,
+        /// The protocol that is offered and not bound.
+        needs: Protocol,
+    },
     /// No such toplevel (never seen, or closed).
     #[error("no toplevel {0:?}")]
     UnknownToplevel(ToplevelKey),
+    /// No such app.
+    #[error("no app {0:?}")]
+    UnknownApp(AppKey),
+    /// No such Space.
+    #[error("no Space {0:?}")]
+    UnknownSpace(SpaceKey),
+    /// The toplevel has no identifier yet, which the shell protocol names windows by.
+    #[error("toplevel {0:?} has no identifier")]
+    NoIdentifier(ToplevelKey),
+    /// A wire code the bindings do not know (the vocab and the bindings are tested to agree, so
+    /// this is a version skew).
+    #[error("no wire value has code {0}")]
+    Code(u32),
     /// No such workspace.
     #[error("no workspace {0:?}")]
     UnknownWorkspace(WorkspaceKey),
