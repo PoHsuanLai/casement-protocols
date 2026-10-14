@@ -18,7 +18,7 @@ the reducers, pairing, `supports`, validation, frame conversion and the fake are
 | --- | --- |
 | `wayland-scanner`, `wayland-server`, `bitflags` and `quick-xml` (dev) are declared here, outside the pinned block copied from quire's `docs/workspace-deps.toml` (the scanner and server lines are cua's; bitflags is named by wayland-scanner's code for the `mac_mods` bitfield; quick-xml is the scanner's own parser, used by the introspection tests) | quire's pinned block carries the four lines and this workspace copies them verbatim |
 | `quire-agent-v1.xml` exists in two places: here and `cua/protocols/` | cua's `quire-agent-protocol` becomes a re-export of `client::quire_agent_v1` and cua deletes its copy (lane S0-CU2); `tests/it/xml_introspection.rs` then holds the bytes through its pin alone |
-| `quire-agent-v1.xml`'s description still describes the cosmic-comp fork as the server and stock cosmic-comp's fallbacks | P4-Z amends v1 in place (`max_edge`, `type_text`, `set_task`, `receipt`) and rewrites the description for casement, updating the pin |
+| `quire-agent-v1.xml`'s is still the draft cua held | P4-Z amends v1 in place (`max_edge`, `type_text`, `set_task`, `receipt`) and finishes the description for casement, updating the pin |
 | `quire-agent-v1.xml`'s `<copyright>` has the dual-licence line but not the MIT permission text the other five carry | the P4-Z amendment above adds it |
 | `desktop-client` declares `wayland-protocols-wlr` and `rustix` (features `fs`) in this workspace, outside quire's pinned block (the first is casement's line; rustix is for the capture buffer's memfd, so no mmap and no unsafe) | quire's pinned block carries them |
 | `desktop-client` wire layer: a list handle is held back (pending, invisible) while the wlr manager is offered, until `toplevel::pair` matches it; a window the wlr manager never reports stays invisible, and a window whose title changed between the two `done`s can fail to pair | a real-compositor run shows the heuristic is not enough on the wlr arm (the Quire arm already links by identifier and never pairs) |
@@ -66,7 +66,7 @@ the reducers, pairing, `supports`, validation, frame conversion and the fake are
 
 The Quire arm of `desktop-client`, implemented in full (this crate is "everything" at its
 freeze). What it is, then what sill must change to adopt it (sill's adoption is a later lane;
-sill's `desktop_wl` and `cosmic_wl` are not touched here).
+sill's `desktop_wl` is not touched here).
 
 ### What landed
 
@@ -109,8 +109,7 @@ sill's `desktop_wl` and `cosmic_wl` are not touched here).
    hand-written copies of those enums.
 2. **Backend choice.** Replace `backend_for(&GlobalOffer)` with a thin call: build a
    `ProtocolSet::from_interfaces(offer.names())` and map `desktop_client::backend_for`:
-   `Some(Quire) -> DesktopBackend::Quire`, `Some(Wlr | Ext) -> Wlr`, `None -> Cosmic` if the
-   cosmic globals are there. Never from names or env.
+   `Some(Quire) -> DesktopBackend::Quire`, `Some(Wlr | Ext) -> Wlr`, `None` -> no backend. Never from names or env.
 3. **Connection.** Where the shell connects: take the fd from
    `org.quire.Compositor1.Connect("shell")` (in `sill-services`, behind the existing zbus seam)
    and call `DesktopClient::connect(WaylandRoute::Handed(fd), DesktopConfig::holding_shell())`.
@@ -118,7 +117,7 @@ sill's `desktop_wl` and `cosmic_wl` are not touched here).
    `DesktopClient` on that `Connection` with `DesktopClient::with_config(&conn,
    DesktopConfig::holding_shell())`, and `register_surface(&host.wl_surface(id))` for each
    (the `SurfaceKey` goes into `SetShellRole` and `SetMinimiseTarget`). Keep the
-   environment route for `SILL_COMPOSITOR=cosmic|kwin` runs and tests.
+   environment route for `SILL_COMPOSITOR=kwin` runs and tests.
 4. **Pump.** Poll `client.connection()`'s fd in the existing reactor; on readable call
    `dispatch_pending()` and `drain_events()`; `Desktop::state()` is the picture.
 5. **Model mapping** (`DesktopView` from `DesktopState`, in `sill-services/src/desktop_wl/` and
@@ -157,7 +156,7 @@ sill's `desktop_wl` and `cosmic_wl` are not touched here).
    bar/dock edge reveal in full screen; `MenuFlash`, `Bell`, `Reopen` (the dock decides what
    reopening means), `Killed` (companion state). Delete `sill-overlays` `switcher/step.rs` and
    `hot_corners/step.rs` consumers of the old modifier source as S0-SW already plans.
-8. **Retire.** `desktop_wl`'s own protocol code once the above passes (`cosmic_wl/` goes at S4);
+8. **Retire.** `desktop_wl`'s own protocol code once the above passes;
    sill's copy of the pairing heuristic never existed on the Quire arm.
 9. **Tests.** Drive the same mapping with `FakeDesktop::with_config` and scripted
    `QuireEvent`s (no compositor); `Linker` needs no fake.

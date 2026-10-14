@@ -7,27 +7,22 @@
   </copyright>
 
   <description summary="agent leases: one window, an agent seat, masked capture, glow">
-    The private protocol between cuad (the computer-use daemon) and the quire fork of cosmic-comp.
+    The private protocol between cuad (the computer-use daemon) and the compositor.
     cuad leases one toplevel at a time. A lease binds four things to that window and to nothing
     else: an input seat of its own (the person's cursor and focus are untouched), a capture source
     whose buffers arrive masked, the glow and the agent's cursor, and the hardware kill chord's
     power to end it.
-
-    Stock cosmic-comp does not advertise these globals. cuad then reaches the compositor through
-    ext-image-copy-capture (masking in cuad), the `com.system76.CosmicComp.Ei` D-Bus method for
-    input, and the shell's own glow; see cua.md, "Fork changes against stock".
 
     All coordinates are window-local logical pixels (the origin is the top-left of the window
     geometry, the same frame as the captured buffer after division by the output scale), except
     where a request says otherwise.
 
     The manager is offered only to a client the compositor can name as cuad: through
-    wp_security_context_v1 and an app-id allow-list in the fork. A client that binds it without
+    wp_security_context_v1 and an app-id allow-list in the compositor. A client that binds it without
     being allow-listed is disconnected with `not_permitted`.
 
-    Warning: this protocol is a draft and may change. The server side lives in the fork
-    (~/cosmic-comp, branch quire, src/quire/**); the client side is cuad's `cua-desktop` `cosmic`
-    feature.
+    Warning: this protocol is a draft and may change. The server side lives in the
+    compositor (casement); the client side is cuad's `cua-desktop`.
   </description>
 
   <interface name="quire_agent_manager_v1" version="1">

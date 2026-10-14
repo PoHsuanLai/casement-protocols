@@ -444,9 +444,9 @@ fn fnv1a(bytes: &[u8]) -> u64 {
     })
 }
 
-/// `quire-agent-v1.xml` as cua held it (`cua/protocols/quire-agent-v1.xml` at cua `798866b`):
-/// its length and FNV-1a 64.
-const AGENT_XML_PIN: (usize, u64) = (10163, 0xeae1_a71e_c110_2baf);
+/// `quire-agent-v1.xml` as cua held it (`cua/protocols/quire-agent-v1.xml` at cua `798866b`),
+/// with the description reworded for casement: its length and FNV-1a 64.
+const AGENT_XML_PIN: (usize, u64) = (9833, 0x569c_c67f_ef71_c548);
 
 #[test]
 fn quire_agent_xml_has_the_bytes_cua_held() {

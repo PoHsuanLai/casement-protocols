@@ -152,8 +152,8 @@ holds the frozen interface as tables (every message with its arguments, every er
   bump); no `since=` until then.
 - **`quire-agent-v1.xml` came from cua byte for byte**; `tests/it/xml_introspection.rs` pins its
   bytes. A change to it updates the pin in the same commit.
-- **Clean room:** the XML is written from our own design notes. COSMIC protocol XML is read
-  for facts only, never copied; no interface here is COSMIC's (`check-boundary.sh` row 5).
+- **Clean room:** the XML is written from our own design notes; every interface here is ours
+  (`check-boundary.sh` row 5).
 - **Licence:** MIT OR Apache-2.0; every XML `<copyright>` carries the notice.
 
 ## 8. `desktop-client` (second package, `desktop-client/`)
