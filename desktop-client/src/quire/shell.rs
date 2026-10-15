@@ -10,7 +10,7 @@ use crate::geometry::Rect;
 use crate::keys::SurfaceKey;
 use crate::names::{AppId, SpaceId, ToplevelIdentifier};
 use casement_protocols::vocab::{
-    Corner, KeyGesture, MacMods, OverviewMode, OverviewState, ScreenEdge, Shown,
+    Corner, KeyGesture, MacMods, OverviewMode, OverviewState, ScreenEdge, Shown, SplitSide,
 };
 
 /// One event of `quire_shell_v1`.
@@ -101,8 +101,48 @@ pub enum ShellEvent {
         /// A bit per `WindowEntry` code, set when the entry can be picked.
         enabled: u32,
     },
+    /// A window went full screen on one half; the shell offers the windows of the
+    /// `SplitCandidate` events that follow for the other half. Starts a [`SplitChoice`].
+    SplitChoose {
+        /// The window already full screen.
+        first: ToplevelIdentifier,
+        /// The half it took.
+        side: SplitSide,
+    },
+    /// A window that can fill the other half, most recently used first; joins the open
+    /// [`SplitChoice`].
+    SplitCandidate(ToplevelIdentifier),
+    /// The choosing for this first window is over (a pick, a cancel, or it left): drop the offer.
+    SplitChoiceEnd(ToplevelIdentifier),
     /// The kill chord was pressed; every agent lease has ended (a moment).
     Killed,
+}
+
+/// The other half of a Split View is being chosen: the first window, its half and the windows
+/// on offer. A pick goes back as `DesktopCommand::PickSplit`, a refusal as
+/// `DesktopCommand::CancelSplit`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SplitChoice {
+    pub(crate) first: ToplevelIdentifier,
+    pub(crate) side: SplitSide,
+    pub(crate) candidates: Vec<ToplevelIdentifier>,
+}
+
+impl SplitChoice {
+    /// The window already full screen.
+    pub fn first(&self) -> &ToplevelIdentifier {
+        &self.first
+    }
+
+    /// The half the first window took.
+    pub fn side(&self) -> SplitSide {
+        self.side
+    }
+
+    /// The windows that can fill the other half, most recently used first.
+    pub fn candidates(&self) -> &[ToplevelIdentifier] {
+        &self.candidates
+    }
 }
 
 /// The switcher: the apps in order and the selection while it is shown.
@@ -228,6 +268,8 @@ pub struct Shell {
     pub overview: Overview,
     /// The edge reveals.
     pub reveals: Reveals,
+    /// The Split View being chosen, while the compositor waits for a pick.
+    pub split_choice: Option<SplitChoice>,
 }
 
 impl Default for Shell {
@@ -238,6 +280,7 @@ impl Default for Shell {
             switcher: Switcher::default(),
             overview: Overview::default(),
             reveals: Reveals::default(),
+            split_choice: None,
         }
     }
 }
@@ -284,6 +327,27 @@ pub(super) fn reduce_shell(mut shell: Shell, event: ShellEvent) -> Shell {
         }
         ShellEvent::Reveal { edge, shown } => {
             shell.reveals.0.insert(edge, shown);
+        }
+        ShellEvent::SplitChoose { first, side } => {
+            shell.split_choice = Some(SplitChoice {
+                first,
+                side,
+                candidates: Vec::new(),
+            });
+        }
+        ShellEvent::SplitCandidate(window) => {
+            if let Some(choice) = shell.split_choice.as_mut() {
+                choice.candidates.push(window);
+            }
+        }
+        ShellEvent::SplitChoiceEnd(first) => {
+            if shell
+                .split_choice
+                .as_ref()
+                .is_some_and(|c| c.first == first)
+            {
+                shell.split_choice = None;
+            }
         }
         ShellEvent::KeyGesture(_)
         | ShellEvent::HotCorner(_)

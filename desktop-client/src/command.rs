@@ -162,6 +162,19 @@ pub enum DesktopCommand {
         /// The entry.
         entry: WindowEntry,
     },
+    /// The person picked a window for the other half of the Split View being chosen
+    /// (`ShellEvent::SplitChoose`). Quire arm, shell role.
+    PickSplit(ToplevelIdentifier),
+    /// The person turned the choice down (Escape, or a click elsewhere): the first window stays
+    /// alone, full screen. Quire arm, shell role.
+    CancelSplit,
+    /// The person moved the divider of a Split View. Quire arm, shell role.
+    DivideSplit {
+        /// Either window of the pair.
+        window: ToplevelIdentifier,
+        /// The leading (left) window's share of the width, in thousandths.
+        share: u32,
+    },
 }
 
 /// The variant of a [`DesktopCommand`] without its data, for errors and logs.
@@ -246,6 +259,12 @@ pub enum CommandKind {
     ShowDesktop,
     /// [`DesktopCommand::PickWindowMenu`].
     PickWindowMenu,
+    /// [`DesktopCommand::PickSplit`].
+    PickSplit,
+    /// [`DesktopCommand::CancelSplit`].
+    CancelSplit,
+    /// [`DesktopCommand::DivideSplit`].
+    DivideSplit,
 }
 
 impl DesktopCommand {
@@ -291,6 +310,9 @@ impl DesktopCommand {
             Self::Overview { .. } => CommandKind::Overview,
             Self::ShowDesktop(_) => CommandKind::ShowDesktop,
             Self::PickWindowMenu { .. } => CommandKind::PickWindowMenu,
+            Self::PickSplit(_) => CommandKind::PickSplit,
+            Self::CancelSplit => CommandKind::CancelSplit,
+            Self::DivideSplit { .. } => CommandKind::DivideSplit,
         }
     }
 }

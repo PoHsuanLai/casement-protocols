@@ -7,7 +7,7 @@ use casement_protocols::vocab::{
     ActorKind, AppLifeKind, AppVisibility, Attention, Corner, Emphasis, GlowCode, KeyGesture,
     LeaseState, MacMods, MenuSourceKind, Modality, OverviewMode, OverviewState, PlacementMark,
     ProofKind, Responsiveness, ScreenEdge, SensitivityLevel, Shown, SpaceActivity, SpaceKind,
-    WindowRole, WindowStateKind,
+    SplitSide, WindowRole, WindowStateKind,
 };
 use desktop_client::quire::{
     AppChange, AppEvent, Lease, Linker, MenuSource, QuireEvent, ShellEvent, SpaceChange,
@@ -603,6 +603,43 @@ fn a_second_switcher_list_replaces_the_first() {
         }),
     ]);
     assert_eq!(state.quire.shell().switcher.apps(), &[AppId::new("z")]);
+}
+
+#[test]
+fn a_split_choice_collects_its_candidates_and_ends_with_its_first_window() {
+    let id = ToplevelIdentifier::new;
+    let choose = shell(ShellEvent::SplitChoose {
+        first: id("w-1"),
+        side: SplitSide::Left,
+    });
+    let candidate = |name: &str| shell(ShellEvent::SplitCandidate(id(name)));
+    let events = vec![choose, candidate("w-2"), candidate("w-3")];
+    let offered = run(events.clone());
+    let choice = offered
+        .quire
+        .shell()
+        .split_choice
+        .as_ref()
+        .expect("offered");
+    assert_eq!(choice.first(), &id("w-1"));
+    assert_eq!(choice.side(), SplitSide::Left);
+    assert_eq!(choice.candidates(), &[id("w-2"), id("w-3")]);
+
+    // The end of another window's choosing leaves this one alone; its own takes it away.
+    let mut other = events.clone();
+    other.push(shell(ShellEvent::SplitChoiceEnd(id("w-9"))));
+    assert!(run(other).quire.shell().split_choice.is_some());
+    let mut ended = events;
+    ended.push(shell(ShellEvent::SplitChoiceEnd(id("w-1"))));
+    assert!(run(ended).quire.shell().split_choice.is_none());
+}
+
+#[test]
+fn a_candidate_with_no_choosing_is_dropped() {
+    let state = run([shell(ShellEvent::SplitCandidate(ToplevelIdentifier::new(
+        "w-2",
+    )))]);
+    assert!(state.quire.shell().split_choice.is_none());
 }
 
 #[test]

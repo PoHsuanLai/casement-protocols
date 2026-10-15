@@ -88,6 +88,16 @@ fn translate(wire: &Wire, event: quire_shell_v1::Event) -> Option<ShellEvent> {
             at: Point::new(x, y),
             enabled,
         },
+        Event::SplitChoose { first, side } => ShellEvent::SplitChoose {
+            first: ToplevelIdentifier::new(first),
+            side: vocab(side)?,
+        },
+        Event::SplitCandidate { toplevel } => {
+            ShellEvent::SplitCandidate(ToplevelIdentifier::new(toplevel))
+        }
+        Event::SplitChoiceEnd { first } => {
+            ShellEvent::SplitChoiceEnd(ToplevelIdentifier::new(first))
+        }
         Event::Killed => ShellEvent::Killed,
         _ => return None,
     })

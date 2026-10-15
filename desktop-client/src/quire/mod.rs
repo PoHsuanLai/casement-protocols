@@ -28,7 +28,9 @@ pub use app::{AppChange, AppEvent, MenuSource, QuireApp};
 pub use event::QuireEvent;
 pub use link::{Linker, WindowObject};
 pub use set::{Active, Quire};
-pub use shell::{Overview, OverviewSlot, OverviewSpaceSlot, Reveals, Shell, ShellEvent, Switcher};
+pub use shell::{
+    Overview, OverviewSlot, OverviewSpaceSlot, Reveals, Shell, ShellEvent, SplitChoice, Switcher,
+};
 pub use space::{QuireSpace, SpaceChange, SpaceEvent};
 pub use targets::check_targets;
 pub use window::{Lease, QuireWindow, SpacePlace, WindowChange, WindowEvent, WindowGeometry};

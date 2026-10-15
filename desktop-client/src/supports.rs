@@ -90,7 +90,10 @@ pub fn requires_on(
         | DesktopCommand::CancelSwitcher
         | DesktopCommand::Overview { .. }
         | DesktopCommand::ShowDesktop(_)
-        | DesktopCommand::PickWindowMenu { .. } => QUIRE_SHELL,
+        | DesktopCommand::PickWindowMenu { .. }
+        | DesktopCommand::PickSplit(_)
+        | DesktopCommand::CancelSplit
+        | DesktopCommand::DivideSplit { .. } => QUIRE_SHELL,
     }
 }
 

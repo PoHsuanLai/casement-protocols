@@ -215,6 +215,18 @@ fn quire_only() -> Vec<(DesktopCommand, Vec<Protocol>)> {
                 window: desktop_client::ToplevelIdentifier::new("w-1"),
                 entry: WindowEntry::Fill,
             },
+            shell.clone(),
+        ),
+        (
+            DesktopCommand::PickSplit(desktop_client::ToplevelIdentifier::new("w-2")),
+            shell.clone(),
+        ),
+        (DesktopCommand::CancelSplit, shell.clone()),
+        (
+            DesktopCommand::DivideSplit {
+                window: desktop_client::ToplevelIdentifier::new("w-1"),
+                share: 400,
+            },
             shell,
         ),
     ]
@@ -323,5 +335,5 @@ fn every_command_has_a_distinct_kind_and_needs_something() {
         );
         kinds.push(command.kind());
     }
-    assert_eq!(kinds.len(), 39);
+    assert_eq!(kinds.len(), 42);
 }

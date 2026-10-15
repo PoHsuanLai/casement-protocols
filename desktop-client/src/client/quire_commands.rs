@@ -51,7 +51,10 @@ pub(super) fn carries(command: &DesktopCommand, quire_arm: bool) -> bool {
         | DesktopCommand::CancelSwitcher
         | DesktopCommand::Overview { .. }
         | DesktopCommand::ShowDesktop(_)
-        | DesktopCommand::PickWindowMenu { .. } => true,
+        | DesktopCommand::PickWindowMenu { .. }
+        | DesktopCommand::PickSplit(_)
+        | DesktopCommand::CancelSplit
+        | DesktopCommand::DivideSplit { .. } => true,
         _ => false,
     }
 }
@@ -208,6 +211,13 @@ pub(super) fn send(wire: &Wire, command: DesktopCommand) -> Result<(), CommandEr
         DesktopCommand::ShowDesktop(toggle) => shell(wire, kind)?.show_desktop(generated(toggle)?),
         DesktopCommand::PickWindowMenu { window, entry } => {
             shell(wire, kind)?.window_menu_pick(window.as_str().to_owned(), generated(entry)?);
+        }
+        DesktopCommand::PickSplit(window) => {
+            shell(wire, kind)?.split_pick(window.as_str().to_owned())
+        }
+        DesktopCommand::CancelSplit => shell(wire, kind)?.split_cancel(),
+        DesktopCommand::DivideSplit { window, share } => {
+            shell(wire, kind)?.split_divide(window.as_str().to_owned(), share);
         }
         _ => {}
     }
