@@ -98,6 +98,14 @@ fn translate(wire: &Wire, event: quire_shell_v1::Event) -> Option<ShellEvent> {
         Event::SplitChoiceEnd { first } => {
             ShellEvent::SplitChoiceEnd(ToplevelIdentifier::new(first))
         }
+        Event::OverviewOutput { output, shown } => ShellEvent::OverviewOutput {
+            output: wire.output_name(&output)?,
+            shown: vocab(shown)?,
+        },
+        Event::DropTarget { output, space_id } => ShellEvent::DropTarget {
+            output: wire.output_name(&output)?,
+            space: space_id.map(SpaceId::new),
+        },
         Event::Killed => ShellEvent::Killed,
         _ => return None,
     })

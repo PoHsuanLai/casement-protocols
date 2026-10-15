@@ -1,5 +1,6 @@
 //! Sending a Quire command.
 
+use wayland_client::Proxy;
 use wayland_client::protocol::wl_output::WlOutput;
 use wayland_client::protocol::wl_seat::WlSeat;
 use wayland_client::protocol::wl_surface::WlSurface;
@@ -54,7 +55,8 @@ pub(super) fn carries(command: &DesktopCommand, quire_arm: bool) -> bool {
         | DesktopCommand::PickWindowMenu { .. }
         | DesktopCommand::PickSplit(_)
         | DesktopCommand::CancelSplit
-        | DesktopCommand::DivideSplit { .. } => true,
+        | DesktopCommand::DivideSplit { .. }
+        | DesktopCommand::SetSpaceTargets { .. } => true,
         _ => false,
     }
 }
@@ -218,6 +220,28 @@ pub(super) fn send(wire: &Wire, command: DesktopCommand) -> Result<(), CommandEr
         DesktopCommand::CancelSplit => shell(wire, kind)?.split_cancel(),
         DesktopCommand::DivideSplit { window, share } => {
             shell(wire, kind)?.split_divide(window.as_str().to_owned(), share);
+        }
+        DesktopCommand::SetSpaceTargets { output: name, targets } => {
+            let shell = shell(wire, kind)?;
+            if shell.version() < 2 {
+                return Err(CommandError::NotBound {
+                    command: kind,
+                    needs: Protocol::QuireShell,
+                });
+            }
+            let output = output(wire, &name)?;
+            shell.space_target_clear(output);
+            for target in targets {
+                let rect = target.rect;
+                shell.space_target(
+                    output,
+                    target.space.as_str().to_owned(),
+                    rect.x,
+                    rect.y,
+                    rect.w,
+                    rect.h,
+                );
+            }
         }
         _ => {}
     }

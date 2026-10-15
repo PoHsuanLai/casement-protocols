@@ -42,6 +42,7 @@ pub struct Interface {
 pub struct Message {
     pub name: String,
     pub kind: Option<String>,
+    pub since: Option<String>,
     pub args: Vec<Arg>,
 }
 
@@ -156,6 +157,7 @@ fn open(protocol: &mut Protocol, stack: &[String], tag: &str, element: &BytesSta
             let message = Message {
                 name: attr("name").unwrap_or_default(),
                 kind: attr("type"),
+                since: attr("since"),
                 args: Vec::new(),
             };
             let interface = last_interface(protocol);

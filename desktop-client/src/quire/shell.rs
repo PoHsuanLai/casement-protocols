@@ -8,7 +8,7 @@ use std::collections::BTreeMap;
 use crate::geometry::Point;
 use crate::geometry::Rect;
 use crate::keys::SurfaceKey;
-use crate::names::{AppId, SpaceId, ToplevelIdentifier};
+use crate::names::{AppId, OutputName, SpaceId, ToplevelIdentifier};
 use casement_protocols::vocab::{
     Corner, KeyGesture, MacMods, OverviewMode, OverviewState, ScreenEdge, Shown, SplitSide,
 };
@@ -114,6 +114,22 @@ pub enum ShellEvent {
     SplitCandidate(ToplevelIdentifier),
     /// The choosing for this first window is over (a pick, a cancel, or it left): drop the offer.
     SplitChoiceEnd(ToplevelIdentifier),
+    /// Mission Control is up or closed on an output (version 2): the Spaces bar is drawn on the
+    /// outputs that are shown only.
+    OverviewOutput {
+        /// The output.
+        output: OutputName,
+        /// Whether its Mission Control is up.
+        shown: Shown,
+    },
+    /// The window dragged in Mission Control is over a Space target of an output, or over none
+    /// (version 2): highlight it.
+    DropTarget {
+        /// The output.
+        output: OutputName,
+        /// The Space under the dragged window; `None` when over none, or the drag ended.
+        space: Option<SpaceId>,
+    },
     /// The kill chord was pressed; every agent lease has ended (a moment).
     Killed,
 }
@@ -200,6 +216,8 @@ pub struct Overview {
     pub(crate) spaces: Vec<OverviewSpaceSlot>,
     pub(crate) pending_slots: Vec<OverviewSlot>,
     pub(crate) pending_spaces: Vec<OverviewSpaceSlot>,
+    pub(crate) outputs: BTreeMap<OutputName, Shown>,
+    pub(crate) drop_targets: BTreeMap<OutputName, SpaceId>,
 }
 
 impl Default for Overview {
@@ -212,6 +230,8 @@ impl Default for Overview {
             spaces: Vec::new(),
             pending_slots: Vec::new(),
             pending_spaces: Vec::new(),
+            outputs: BTreeMap::new(),
+            drop_targets: BTreeMap::new(),
         }
     }
 }
@@ -240,6 +260,21 @@ impl Overview {
     /// The Space thumbnails of the last complete layout.
     pub fn spaces(&self) -> &[OverviewSpaceSlot] {
         &self.spaces
+    }
+
+    /// Whether Mission Control is up on `output`. Before any `OverviewOutput` (a compositor of
+    /// version 1) every output counts as shown while the overview is not closed, as it always
+    /// was.
+    pub fn shown_on(&self, output: &OutputName) -> bool {
+        match self.outputs.get(output) {
+            Some(shown) => *shown == Shown::Shown,
+            None => self.outputs.is_empty() && self.state != OverviewState::Closed,
+        }
+    }
+
+    /// The Space target the dragged window is over on `output`, if any.
+    pub fn drop_target(&self, output: &OutputName) -> Option<&SpaceId> {
+        self.drop_targets.get(output)
     }
 }
 
@@ -321,6 +356,17 @@ pub(super) fn reduce_shell(mut shell: Shell, event: ShellEvent) -> Shell {
                 .pending_spaces
                 .push(OverviewSpaceSlot { space, rect });
         }
+        ShellEvent::OverviewOutput { output, shown } => {
+            shell.overview.outputs.insert(output, shown);
+        }
+        ShellEvent::DropTarget { output, space } => match space {
+            Some(space) => {
+                shell.overview.drop_targets.insert(output, space);
+            }
+            None => {
+                shell.overview.drop_targets.remove(&output);
+            }
+        },
         ShellEvent::OverviewDone => {
             shell.overview.slots = std::mem::take(&mut shell.overview.pending_slots);
             shell.overview.spaces = std::mem::take(&mut shell.overview.pending_spaces);

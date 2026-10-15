@@ -115,6 +115,9 @@ pub const INTERFACES: &[(&str, &str, &[&str], &[&str])] = &[
             "split_cancel()",
             "split_divide(toplevel: string, share: uint)",
             "destroy() [destructor]",
+            "get_space_capture_source(source: new_id ext_image_capture_source_v1, output: wl_output, space_id: string, width: uint, height: uint)",
+            "space_target_clear(output: wl_output)",
+            "space_target(output: wl_output, space_id: string, x: int, y: int, width: uint, height: uint)",
         ],
         &[
             "modifiers(surface: wl_surface, mods: uint<mac_mods>)",
@@ -137,6 +140,8 @@ pub const INTERFACES: &[(&str, &str, &[&str], &[&str])] = &[
             "split_candidate(toplevel: string)",
             "split_choice_end(first: string)",
             "killed()",
+            "overview_output(output: wl_output, shown: uint<shown>)",
+            "drop_target(output: wl_output, space_id: string?)",
         ],
     ),
     (
@@ -243,7 +248,7 @@ pub const ERRORS: &[(&str, &[&str])] = &[
     ),
     (
         "quire_shell_v1",
-        &["role_taken", "bad_surface", "unknown_toplevel"],
+        &["role_taken", "bad_surface", "unknown_toplevel", "bad_target"],
     ),
     ("quire_window_manager_v1", &["already_constructed"]),
     ("quire_window_v1", &["defunct_toplevel", "bad_role"]),

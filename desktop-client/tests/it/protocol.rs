@@ -5,7 +5,9 @@ use casement_protocols::vocab::{
 };
 use desktop_client::capture::CaptureRequest;
 use desktop_client::output::OutputConfig;
-use desktop_client::{AppKey, CommandKind, DesktopBackend, Rect, SpaceKey, requires_on};
+use desktop_client::{
+    AppKey, CommandKind, DesktopBackend, Rect, SpaceKey, SpaceTarget, requires_on,
+};
 use desktop_client::{
     DesktopCommand, GroupKey, OutputName, Protocol, ProtocolSet, Supports, SurfaceKey, ToplevelKey,
     WorkspaceKey, missing, requires, supports,
@@ -121,6 +123,20 @@ fn output_commands_need_wlr_output_management() {
 }
 
 #[test]
+fn a_space_picture_needs_the_copy_manager_and_the_shell_not_the_output_source() {
+    let request = CaptureRequest::of_space(
+        OutputName::new("DP-1"),
+        desktop_client::SpaceId::new("s-1"),
+        desktop_client::Size::new(160, 90),
+    );
+    let command = DesktopCommand::CaptureOutput(request);
+    assert_eq!(
+        requires(&command),
+        &[Protocol::ExtImageCopyCapture, Protocol::QuireShell]
+    );
+}
+
+#[test]
 fn capture_needs_both_the_copy_manager_and_the_output_source() {
     let command = DesktopCommand::CaptureOutput(CaptureRequest::new(OutputName::new("DP-1")));
     let copy = ProtocolSet::empty().with(Protocol::ExtImageCopyCapture);
@@ -226,6 +242,16 @@ fn quire_only() -> Vec<(DesktopCommand, Vec<Protocol>)> {
             DesktopCommand::DivideSplit {
                 window: desktop_client::ToplevelIdentifier::new("w-1"),
                 share: 400,
+            },
+            shell.clone(),
+        ),
+        (
+            DesktopCommand::SetSpaceTargets {
+                output: OutputName::new("DP-1"),
+                targets: vec![SpaceTarget::new(
+                    desktop_client::SpaceId::new("s-1"),
+                    Rect::new(0, 0, 160, 90),
+                )],
             },
             shell,
         ),
@@ -335,5 +361,5 @@ fn every_command_has_a_distinct_kind_and_needs_something() {
         );
         kinds.push(command.kind());
     }
-    assert_eq!(kinds.len(), 42);
+    assert_eq!(kinds.len(), 43);
 }

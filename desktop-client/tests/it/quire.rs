@@ -635,6 +635,57 @@ fn a_split_choice_collects_its_candidates_and_ends_with_its_first_window() {
 }
 
 #[test]
+fn mission_control_is_shown_on_the_outputs_the_compositor_names() {
+    let output = |name: &str| OutputName::new(name);
+    let shown = |name: &str, shown| {
+        shell(ShellEvent::OverviewOutput {
+            output: output(name),
+            shown,
+        })
+    };
+    let open = shell(ShellEvent::Overview {
+        mode: OverviewMode::MissionControl,
+        state: OverviewState::Open,
+        progress: 1000,
+    });
+    // A version 1 compositor names no output: every output counts while it is not closed.
+    let old = run([open.clone()]);
+    assert!(old.quire.shell().overview.shown_on(&output("DP-1")));
+    let state = run([
+        shown("DP-1", Shown::Shown),
+        shown("DP-2", Shown::Hidden),
+        open,
+    ]);
+    let overview = &state.quire.shell().overview;
+    assert!(overview.shown_on(&output("DP-1")));
+    assert!(!overview.shown_on(&output("DP-2")));
+}
+
+#[test]
+fn the_drop_target_follows_the_dragged_window_and_ends_empty() {
+    let target = |space: Option<&str>| {
+        shell(ShellEvent::DropTarget {
+            output: OutputName::new("DP-1"),
+            space: space.map(SpaceId::new),
+        })
+    };
+    let over = run([target(Some("s-2"))]);
+    assert_eq!(
+        over.quire.shell().overview.drop_target(&OutputName::new("DP-1")),
+        Some(&SpaceId::new("s-2"))
+    );
+    let after = run([target(Some("s-2")), target(None)]);
+    assert!(
+        after
+            .quire
+            .shell()
+            .overview
+            .drop_target(&OutputName::new("DP-1"))
+            .is_none()
+    );
+}
+
+#[test]
 fn a_candidate_with_no_choosing_is_dropped() {
     let state = run([shell(ShellEvent::SplitCandidate(ToplevelIdentifier::new(
         "w-2",

@@ -77,5 +77,8 @@ client_protocol!(
     /// `quire-shell-v1.xml`: the shell's surface roles and system events.
     quire_shell_v1,
     "protocols/quire-shell-v1.xml",
-    [crate::client::quire_desktop_v1]
+    [
+        wayland_protocols::ext::image_capture_source::v1::client,
+        crate::client::quire_desktop_v1
+    ]
 );

@@ -34,10 +34,12 @@
     one that holds its toplevel handles, and no Wayland object crosses connections.
 
     This protocol is a draft. Until it is declared stable, version 1 may change in place with
-    every client and the server updated together.
+    every client and the server updated together. Version 2 adds, without touching version 1's
+    messages or opcodes, which outputs Mission Control is open on, Space pictures and dropping
+    a window on a Space in Mission Control; every message it adds says `since="2"`.
   </description>
 
-  <interface name="quire_shell_v1" version="1">
+  <interface name="quire_shell_v1" version="2">
     <description summary="the shell's global">
       Advertised on Shell connections only.
 
@@ -48,6 +50,7 @@
       <entry name="role_taken" value="0" summary="another surface already has that role"/>
       <entry name="bad_surface" value="1" summary="the surface is not a layer surface of this client"/>
       <entry name="unknown_toplevel" value="2" summary="no toplevel has the given identifier"/>
+      <entry name="bad_target" value="3" since="2" summary="a Space target rectangle has no size"/>
     </enum>
 
     <enum name="shell_role">
@@ -396,6 +399,73 @@
       <description summary="the kill chord was pressed">
         Every agent lease has ended.
       </description>
+    </event>
+
+    <request name="get_space_capture_source" since="2">
+      <description summary="a picture source for one Space of an output">
+        Creates an ext_image_capture_source_v1 that shows the Space `space_id` of `output`: its
+        windows where they sit on the output, over a transparent background (the shell draws the
+        wallpaper), scaled to `width` by `height` pixels (the shell's miniature; each side is
+        kept between 1 and 1024). Use it with the standard ext_image_copy_capture_manager_v1;
+        the session's buffer constraints announce that size, and a frame is sent only when
+        something in the Space changed since the last one. The windows are drawn without their frames. A Space
+        that does not exist, or is not on `output`, gives a source whose sessions are stopped at
+        once; so does a Space that is removed while the session lives. This version draws the
+        Space the output shows now; any other Space gives a source whose sessions are stopped.
+      </description>
+      <arg name="source" type="new_id" interface="ext_image_capture_source_v1"/>
+      <arg name="output" type="object" interface="wl_output"/>
+      <arg name="space_id" type="string" summary="the Space's id"/>
+      <arg name="width" type="uint" summary="picture width in pixels"/>
+      <arg name="height" type="uint" summary="picture height in pixels"/>
+    </request>
+
+    <request name="space_target_clear" since="2">
+      <description summary="forget the Space targets of an output">
+        Removes every rectangle set with `space_target` for `output`. Send it, then the new
+        rectangles, when the shell's Spaces bar changes.
+      </description>
+      <arg name="output" type="object" interface="wl_output"/>
+    </request>
+
+    <request name="space_target" since="2">
+      <description summary="a place a window can be dropped on a Space">
+        While a window is dragged in Mission Control, releasing it over this rectangle moves it to
+        the Space `space_id`. The rectangle is in global logical pixels (like `overview_space`).
+        Later targets are in front of earlier ones. An empty rectangle raises `bad_target`. A
+        Space that does not exist is kept but never hit.
+      </description>
+      <arg name="output" type="object" interface="wl_output"/>
+      <arg name="space_id" type="string" summary="the Space's id"/>
+      <arg name="x" type="int"/>
+      <arg name="y" type="int"/>
+      <arg name="width" type="uint"/>
+      <arg name="height" type="uint"/>
+    </request>
+
+    <event name="overview_output" since="2">
+      <description summary="Mission Control is open or closed on an output">
+        Sent for every output, just before each `overview_state`, and for an output that is
+        plugged in while Mission Control is open. Mission Control follows the Mac's way with
+        separate Spaces on each display: it opens on every output at once, each with its own
+        windows and its own Spaces bar. `shown` is `shown` for an output whose Mission Control is
+        up (entering, open or leaving) and `hidden` when it is closed. The shell draws its Spaces
+        bar on the outputs that are shown only.
+      </description>
+      <arg name="output" type="object" interface="wl_output"/>
+      <arg name="shown" type="uint" enum="shown"/>
+    </event>
+
+    <event name="drop_target" since="2">
+      <description summary="the dragged window is over a Space target">
+        While a window is dragged in Mission Control (a press on its slot, then a move past a
+        small distance), the Space target under the pointer changed. `space_id` is the Space of
+        the `space_target` rectangle under the pointer on `output`, or null when none is: the
+        shell highlights it. It is sent with null when the drag ends, by a drop or by the window
+        flying back.
+      </description>
+      <arg name="output" type="object" interface="wl_output"/>
+      <arg name="space_id" type="string" allow-null="true" summary="the Space's id"/>
     </event>
   </interface>
 </protocol>

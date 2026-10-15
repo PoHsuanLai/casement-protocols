@@ -5,7 +5,7 @@ use crate::geometry::Rect;
 use crate::keys::{
     AppKey, CaptureId, ConfigId, GroupKey, SpaceKey, SurfaceKey, ToplevelKey, WorkspaceKey,
 };
-use crate::names::{OutputName, ToplevelIdentifier};
+use crate::names::{OutputName, SpaceId, ToplevelIdentifier};
 use crate::output::OutputConfig;
 use casement_protocols::vocab::{
     Assign, OverviewMode, PlaceTarget, ShellRole, Toggle, WindowEntry,
@@ -175,6 +175,31 @@ pub enum DesktopCommand {
         /// The leading (left) window's share of the width, in thousandths.
         share: u32,
     },
+    /// Replaces the rectangles of `output` a window dragged in Mission Control can be dropped on
+    /// to move it to a Space (version 2). Quire arm, shell role.
+    SetSpaceTargets {
+        /// The output.
+        output: OutputName,
+        /// The targets, in global logical pixels; later ones are in front.
+        targets: Vec<SpaceTarget>,
+    },
+}
+
+/// A place a dragged window can be dropped on a Space.
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
+pub struct SpaceTarget {
+    /// The Space the window moves to.
+    pub space: SpaceId,
+    /// The rectangle, in global logical pixels.
+    pub rect: Rect,
+}
+
+impl SpaceTarget {
+    /// A target of `rect` for `space`.
+    pub fn new(space: SpaceId, rect: Rect) -> Self {
+        Self { space, rect }
+    }
 }
 
 /// The variant of a [`DesktopCommand`] without its data, for errors and logs.
@@ -265,6 +290,8 @@ pub enum CommandKind {
     CancelSplit,
     /// [`DesktopCommand::DivideSplit`].
     DivideSplit,
+    /// [`DesktopCommand::SetSpaceTargets`].
+    SetSpaceTargets,
 }
 
 impl DesktopCommand {
@@ -313,6 +340,7 @@ impl DesktopCommand {
             Self::PickSplit(_) => CommandKind::PickSplit,
             Self::CancelSplit => CommandKind::CancelSplit,
             Self::DivideSplit { .. } => CommandKind::DivideSplit,
+            Self::SetSpaceTargets { .. } => CommandKind::SetSpaceTargets,
         }
     }
 }

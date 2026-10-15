@@ -76,7 +76,7 @@ pub mod fake;
 pub use admit::admit;
 pub use backend::{DesktopBackend, backend_for};
 pub use capture::{CaptureRequest, Frame};
-pub use command::{CommandKind, DesktopCommand, Ticket};
+pub use command::{CommandKind, DesktopCommand, SpaceTarget, Ticket};
 pub use config::{DesktopConfig, ShellBinding};
 pub use desktop::Desktop;
 pub use error::CommandError;

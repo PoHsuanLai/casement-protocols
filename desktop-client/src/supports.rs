@@ -69,6 +69,9 @@ pub fn requires_on(
         | DesktopCommand::CreateWorkspace { .. }
         | DesktopCommand::CommitWorkspaces => &[ExtWorkspace],
         DesktopCommand::ApplyOutputs(_) | DesktopCommand::TestOutputs(_) => &[WlrOutputManagement],
+        DesktopCommand::CaptureOutput(request) if request.space.is_some() => {
+            &[ExtImageCopyCapture, QuireShell]
+        }
         DesktopCommand::CaptureOutput(_) => &[ExtImageCopyCapture, ExtOutputImageCaptureSource],
         DesktopCommand::Place { .. }
         | DesktopCommand::MoveToSpace { .. }
@@ -93,7 +96,8 @@ pub fn requires_on(
         | DesktopCommand::PickWindowMenu { .. }
         | DesktopCommand::PickSplit(_)
         | DesktopCommand::CancelSplit
-        | DesktopCommand::DivideSplit { .. } => QUIRE_SHELL,
+        | DesktopCommand::DivideSplit { .. }
+        | DesktopCommand::SetSpaceTargets { .. } => QUIRE_SHELL,
     }
 }
 

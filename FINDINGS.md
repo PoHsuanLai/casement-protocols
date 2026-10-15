@@ -186,3 +186,25 @@ server updated together; no version bump, no pinned bytes: only `quire-agent-v1.
   (`SplitChoice`: first, side, candidates); `DesktopCommand::{PickSplit, CancelSplit, DivideSplit}` (Quire arm, shell
   role); 42 command kinds.
 - Written without a compiler; check `cargo test` here before landing casement and sill.
+
+## wave-2026-10-15/mcwire
+
+`quire_shell_v1` is now **version 2** (casement-protocols `lane/cas9-mcwire`, casement, sill). Written without a compiler.
+Version 1's messages and opcodes are untouched: the new requests come after `destroy`, the new events after `killed`, every
+one says `since="2"`, and `casement` serves version 2 while a client that binds 1 sees exactly the old interface. The draft
+rule "version 1 may change in place" is kept for the other five files; this file moves to 2 because a client of the old
+casement must keep working.
+
+- Event `overview_output(output: wl_output, shown)`: sent to every output before each `overview_state`. casement's overview is
+  global (as the Mac's with separate Spaces: it opens on every display at once), so every output reports the same state; the
+  event lets the shell draw its Spaces bar per output and leaves room for a per-output overview later.
+- Request `get_space_capture_source(source: new_id ext_image_capture_source_v1, output, space_id, width, height)`: a source for
+  the standard ext-image-copy-capture manager. Windows without frames over a transparent background, scaled to the size asked
+  for (1..=1024 each side). First version: only the Space the output shows now.
+- Requests `space_target_clear(output)` and `space_target(output, space_id, x, y, width, height)`; event
+  `drop_target(output, space_id?)`. New error `bad_target` (an empty rectangle).
+- `desktop-client`: `ShellEvent::{OverviewOutput, DropTarget}` (state: `Overview::shown_on`, `Overview::drop_target`),
+  `DesktopCommand::SetSpaceTargets { output, targets }` (43 kinds), `CaptureRequest::of_space(output, space, size)`
+  (one frame; ask again after a change), the shell is bound at `1..=2`.
+- Tests: `the_shells_version_two_messages_are_appended_and_say_since_two`, the frozen table, the error table, desktop-client
+  protocol and reducer tests. Land casement-protocols first.

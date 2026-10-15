@@ -11,7 +11,7 @@ use std::time::Duration;
 
 use wayland_client::protocol::wl_buffer::WlBuffer;
 use wayland_client::protocol::wl_shm;
-use wayland_client::{Connection, Dispatch, QueueHandle};
+use wayland_client::{Connection, Dispatch, Proxy, QueueHandle};
 use wayland_protocols::ext::image_capture_source::v1::client::ext_image_capture_source_v1::ExtImageCaptureSourceV1;
 use wayland_protocols::ext::image_copy_capture::v1::client::{
     ext_image_copy_capture_frame_v1::{self, ExtImageCopyCaptureFrameV1},
@@ -84,11 +84,6 @@ pub(super) fn start(wire: &mut Wire, request: &CaptureRequest) -> Result<Capture
         .outputs
         .get(&request.output)
         .ok_or_else(|| CommandError::UnknownOutput(request.output.clone()))?;
-    let sources = wire
-        .handles
-        .output_source
-        .as_ref()
-        .ok_or_else(|| unsupported(Protocol::ExtOutputImageCaptureSource))?;
     let manager = wire
         .handles
         .copy_capture
@@ -98,7 +93,30 @@ pub(super) fn start(wire: &mut Wire, request: &CaptureRequest) -> Result<Capture
         CursorMode::Hidden => Options::empty(),
         CursorMode::Painted => Options::PaintCursors,
     };
-    let source = sources.create_source(output, &wire.qh, ());
+    let source = match &request.space {
+        Some(shot) => {
+            let shell = wire
+                .handles
+                .quire_shell
+                .as_ref()
+                .filter(|shell| shell.version() >= 2)
+                .ok_or_else(|| unsupported(Protocol::QuireShell))?;
+            shell.get_space_capture_source(
+                output,
+                shot.space.as_str().to_owned(),
+                shot.size.w,
+                shot.size.h,
+                &wire.qh,
+                (),
+            )
+        }
+        None => wire
+            .handles
+            .output_source
+            .as_ref()
+            .ok_or_else(|| unsupported(Protocol::ExtOutputImageCaptureSource))?
+            .create_source(output, &wire.qh, ()),
+    };
     let session = manager.create_session(&source, options, &wire.qh, id);
     wire.handles.captures.insert(
         id,

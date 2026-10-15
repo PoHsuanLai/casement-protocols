@@ -11,6 +11,6 @@ mod session;
 
 pub use event::{CaptureEvent, CaptureFailure};
 pub use frame::{Frame, FrameError, ShmFormat};
-pub use request::{CaptureRequest, CursorMode};
+pub use request::{CaptureRequest, CursorMode, SpaceShot};
 pub(crate) use session::reduce_captures;
 pub use session::{CapturePhase, CaptureSession, Captures};

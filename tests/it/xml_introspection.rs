@@ -187,7 +187,7 @@ fn every_protocol_is_named_after_its_file() {
 }
 
 #[test]
-fn every_interface_is_a_quire_v1_interface_at_version_one() {
+fn every_interface_is_a_quire_v1_interface_at_its_version() {
     let protocols = protocols();
     let names: Vec<&str> = all_interfaces(&protocols)
         .iter()
@@ -205,7 +205,42 @@ fn every_interface_is_a_quire_v1_interface_at_version_one() {
             "{}",
             interface.name
         );
-        assert_eq!(interface.version, "1", "{}", interface.name);
+        // Only the shell's global has grown a second version.
+        let version = match interface.name.as_str() {
+            "quire_shell_v1" => "2",
+            _ => "1",
+        };
+        assert_eq!(interface.version, version, "{}", interface.name);
+    }
+}
+
+#[test]
+fn the_shells_version_two_messages_are_appended_and_say_since_two() {
+    let protocols = protocols();
+    let shell = interface(&protocols, "quire_shell_v1");
+    for (kind, messages, added) in [
+        (
+            "requests",
+            &shell.requests,
+            &["get_space_capture_source", "space_target_clear", "space_target"][..],
+        ),
+        (
+            "events",
+            &shell.events,
+            &["overview_output", "drop_target"][..],
+        ),
+    ] {
+        let (old, new) = messages.split_at(messages.len() - added.len());
+        let names: Vec<&str> = new.iter().map(|m| m.name.as_str()).collect();
+        assert_eq!(names, added, "{kind}: the newest messages come last");
+        assert!(
+            new.iter().all(|m| m.since.as_deref() == Some("2")),
+            "{kind}: a version 2 message says since=2"
+        );
+        assert!(
+            old.iter().all(|m| m.since.is_none()),
+            "{kind}: a version 1 message has no since"
+        );
     }
 }
 
