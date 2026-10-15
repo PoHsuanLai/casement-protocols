@@ -173,3 +173,16 @@ server updated together; no version bump, no pinned bytes: only `quire-agent-v1.
 - `desktop-client`: `ShellEvent::WindowMenu { window, at, enabled }` (a moment, no state) and
   `DesktopCommand::PickWindowMenu { window, entry }` (Quire arm, shell role).
 - Written without a compiler; check `cargo test` here before landing casement and sill.
+
+## wave-2026-10-15/splitwire
+
+`quire_shell_v1` gained the Split View picker and divider, in place (version 1, no pinned bytes touched).
+
+- Enum `split_side` (left 0, right 1), vocab type `SplitSide`.
+- Events `split_choose(first, side)`, then one `split_candidate(toplevel)` per candidate (most recently used first),
+  then `split_choice_end(first)`. Requests `split_pick(toplevel)`, `split_cancel()`, `split_divide(toplevel, share)`
+  (thousandths, leading window). The frozen table in `tests/it/support/frozen.rs` follows.
+- `desktop-client`: `ShellEvent::{SplitChoose, SplitCandidate, SplitChoiceEnd}` fold into `Shell::split_choice`
+  (`SplitChoice`: first, side, candidates); `DesktopCommand::{PickSplit, CancelSplit, DivideSplit}` (Quire arm, shell
+  role); 42 command kinds.
+- Written without a compiler; check `cargo test` here before landing casement and sill.
