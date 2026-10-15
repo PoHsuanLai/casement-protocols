@@ -227,3 +227,18 @@ opcodes are untouched; the new ones come last and say `since="3"`.
   `Overview::over_new_space(&output)`, the shell is bound at `1..=3`.
 - Tests: `the_shells_newer_messages_are_appended_in_version_order_and_say_since` (replaces the version-2-only test), the frozen
   table, interface version 3, desktop-client protocol (44 kinds, needs the shell) and reducer test. Land this first.
+
+## wave-2026-10-15/dragstart
+
+`quire_shell_v1` is now **version 4** (casement lane `cas17-dragstart`). Written without a compiler. Everything older is
+untouched; the new messages come last and say `since="4"`.
+
+- Event `window_drag_begin(output, toplevel)`: a window drag started in Mission Control on `output`, so the shell can show
+  which targets accept it before the pointer reaches one. One drag at a time.
+- Event `window_drag_end(output, toplevel, outcome: drag_outcome)`: the drag is over. `drag_outcome` (new enum, vocab
+  `DragOutcome`): `dropped_on_space` 0, `dropped_on_new` 1, `cancelled` 2. Sent after the `drop_target` / `drop_target_new`
+  messages that clear the highlight.
+- `desktop-client`: `ShellEvent::WindowDragBegin`, `ShellEvent::WindowDragEnd`, `Overview::dragged_window(&output)`,
+  `Overview::last_drag_outcome(&output)`; the shell is bound at `1..=4`. No new command.
+- Tests: the version-ordered message test now has a version 4 column, the frozen table, interface version 4, vocab codes and
+  round trip for `DragOutcome`, a desktop-client reducer test. Land this first.

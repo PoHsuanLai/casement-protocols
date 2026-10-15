@@ -38,10 +38,11 @@
     messages or opcodes, which outputs Mission Control is open on, Space pictures and dropping
     a window on a Space in Mission Control; every message it adds says `since="2"`. Version 3 adds, again
     after everything older, a "new desktop" drop target: dropping a window on it makes a Space with the
-    window; every message it adds says `since="3"`.
+    window; every message it adds says `since="3"`. Version 4 adds, again after everything older, the start
+    and the end of a window drag in Mission Control; every message it adds says `since="4"`.
   </description>
 
-  <interface name="quire_shell_v1" version="3">
+  <interface name="quire_shell_v1" version="4">
     <description summary="the shell's global">
       Advertised on Shell connections only.
 
@@ -159,6 +160,13 @@
       </description>
       <entry name="left" value="0" summary="the left half"/>
       <entry name="right" value="1" summary="the right half"/>
+    </enum>
+
+    <enum name="drag_outcome">
+      <description summary="how a window drag in Mission Control ended"/>
+      <entry name="dropped_on_space" value="0" summary="dropped on a Space of the Spaces bar"/>
+      <entry name="dropped_on_new" value="1" summary="dropped on the new-desktop target"/>
+      <entry name="cancelled" value="2" summary="dropped on nothing; the window flew back"/>
     </enum>
 
     <request name="set_role">
@@ -498,6 +506,27 @@
       </description>
       <arg name="output" type="object" interface="wl_output"/>
       <arg name="over" type="uint" enum="shown"/>
+    </event>
+
+    <event name="window_drag_begin" since="4">
+      <description summary="a window drag started in Mission Control">
+        A press on a window's slot moved past the small distance, so the window is being dragged on
+        `output`: the shell shows which targets (the Spaces of its bar and the "add desktop" tile)
+        accept it. `drop_target` and `drop_target_new` follow while the pointer moves. One drag
+        at a time; it ends with `window_drag_end`.
+      </description>
+      <arg name="output" type="object" interface="wl_output"/>
+      <arg name="toplevel" type="string" summary="ext-foreign-toplevel identifier"/>
+    </event>
+
+    <event name="window_drag_end" since="4">
+      <description summary="the window drag in Mission Control is over">
+        The window was released or the drag was abandoned. `outcome` says where it went. It comes
+        after the `drop_target` and `drop_target_new` messages that clear the highlight.
+      </description>
+      <arg name="output" type="object" interface="wl_output"/>
+      <arg name="toplevel" type="string" summary="ext-foreign-toplevel identifier"/>
+      <arg name="outcome" type="uint" enum="drag_outcome"/>
     </event>
   </interface>
 </protocol>

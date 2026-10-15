@@ -7,12 +7,12 @@ use crate::support;
 use std::collections::BTreeSet;
 
 use casement_protocols::vocab::{
-    ActorKind, AppLifeKind, AppVisibility, Assign, Attention, Corner, Edited, Emphasis, FrameMode,
-    GlowCode, KeyGesture, LeaseState, MacMods, MaskReason, MenuSourceKind, Modality, OverviewMode,
-    OverviewState, PlaceKind, PlaceTarget, PlacementMark, ProofKind, Responsiveness, RevokeReason,
-    RunMode, ScreenEdge, SensitivityLevel, ShellRole, Shown, SpaceActivity, SpaceKind, SplitSide,
-    Suspend, TileZone, Toggle, TrustedAnchor, TrustedKind, WindowEntry, WindowRole,
-    WindowStateKind, WireCode, Withdrawn,
+    ActorKind, AppLifeKind, AppVisibility, Assign, Attention, Corner, DragOutcome, Edited,
+    Emphasis, FrameMode, GlowCode, KeyGesture, LeaseState, MacMods, MaskReason, MenuSourceKind,
+    Modality, OverviewMode, OverviewState, PlaceKind, PlaceTarget, PlacementMark, ProofKind,
+    Responsiveness, RevokeReason, RunMode, ScreenEdge, SensitivityLevel, ShellRole, Shown,
+    SpaceActivity, SpaceKind, SplitSide, Suspend, TileZone, Toggle, TrustedAnchor, TrustedKind,
+    WindowEntry, WindowRole, WindowStateKind, WireCode, Withdrawn,
 };
 use support::frozen::{ERRORS, EXTERNAL, INTERFACES};
 use support::{Interface, Message, Protocol, protocols};
@@ -97,6 +97,7 @@ const VOCAB: &[(&str, &str, Entries)] = &[
     ("quire_shell_v1", "shown", entries::<Shown>),
     ("quire_shell_v1", "window_entry", entries::<WindowEntry>),
     ("quire_shell_v1", "split_side", entries::<SplitSide>),
+    ("quire_shell_v1", "drag_outcome", entries::<DragOutcome>),
     ("quire_window_v1", "window_role", entries::<WindowRole>),
     ("quire_window_v1", "tile_zone", entries::<TileZone>),
     ("quire_window_v1", "place_target", entries::<PlaceTarget>),
@@ -207,7 +208,7 @@ fn every_interface_is_a_quire_v1_interface_at_its_version() {
         );
         // Only the shell's global has grown past version 1.
         let version = match interface.name.as_str() {
-            "quire_shell_v1" => "3",
+            "quire_shell_v1" => "4",
             _ => "1",
         };
         assert_eq!(interface.version, version, "{}", interface.name);
@@ -218,8 +219,8 @@ fn every_interface_is_a_quire_v1_interface_at_its_version() {
 fn the_shells_newer_messages_are_appended_in_version_order_and_say_since() {
     let protocols = protocols();
     let shell = interface(&protocols, "quire_shell_v1");
-    // (kind, messages, the version 2 names, the version 3 names), each in wire order.
-    for (kind, messages, two, three) in [
+    // (kind, messages, the version 2, 3 and 4 names), each in wire order.
+    for (kind, messages, two, three, four) in [
         (
             "requests",
             &shell.requests,
@@ -229,21 +230,25 @@ fn the_shells_newer_messages_are_appended_in_version_order_and_say_since() {
                 "space_target",
             ][..],
             &["space_target_new"][..],
+            &[] as &[&str],
         ),
         (
             "events",
             &shell.events,
             &["overview_output", "drop_target"][..],
             &["drop_target_new"][..],
+            &["window_drag_begin", "window_drag_end"][..],
         ),
     ] {
-        let split = messages.len() - two.len() - three.len();
+        let split = messages.len() - two.len() - three.len() - four.len();
         let (old, rest) = messages.split_at(split);
-        let (v2, v3) = rest.split_at(two.len());
+        let (v2, rest) = rest.split_at(two.len());
+        let (v3, v4) = rest.split_at(three.len());
         let names =
             |list: &[Message]| -> Vec<String> { list.iter().map(|m| m.name.clone()).collect() };
         assert_eq!(names(v2), two, "{kind}: version 2 comes after version 1");
-        assert_eq!(names(v3), three, "{kind}: version 3 comes last");
+        assert_eq!(names(v3), three, "{kind}: version 3 comes after version 2");
+        assert_eq!(names(v4), four, "{kind}: version 4 comes last");
         assert!(
             v2.iter().all(|m| m.since.as_deref() == Some("2")),
             "{kind}: a version 2 message says since=2"
@@ -251,6 +256,10 @@ fn the_shells_newer_messages_are_appended_in_version_order_and_say_since() {
         assert!(
             v3.iter().all(|m| m.since.as_deref() == Some("3")),
             "{kind}: a version 3 message says since=3"
+        );
+        assert!(
+            v4.iter().all(|m| m.since.as_deref() == Some("4")),
+            "{kind}: a version 4 message says since=4"
         );
         assert!(
             old.iter().all(|m| m.since.is_none()),

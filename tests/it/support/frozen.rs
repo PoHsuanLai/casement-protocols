@@ -144,6 +144,8 @@ pub const INTERFACES: &[(&str, &str, &[&str], &[&str])] = &[
             "overview_output(output: wl_output, shown: uint<shown>)",
             "drop_target(output: wl_output, space_id: string?)",
             "drop_target_new(output: wl_output, over: uint<shown>)",
+            "window_drag_begin(output: wl_output, toplevel: string)",
+            "window_drag_end(output: wl_output, toplevel: string, outcome: uint<drag_outcome>)",
         ],
     ),
     (

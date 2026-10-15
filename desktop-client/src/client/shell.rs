@@ -110,6 +110,19 @@ fn translate(wire: &Wire, event: quire_shell_v1::Event) -> Option<ShellEvent> {
             output: wire.output_name(&output)?,
             over: vocab(over)?,
         },
+        Event::WindowDragBegin { output, toplevel } => ShellEvent::WindowDragBegin {
+            output: wire.output_name(&output)?,
+            window: ToplevelIdentifier::new(toplevel),
+        },
+        Event::WindowDragEnd {
+            output,
+            toplevel,
+            outcome,
+        } => ShellEvent::WindowDragEnd {
+            output: wire.output_name(&output)?,
+            window: ToplevelIdentifier::new(toplevel),
+            outcome: vocab(outcome)?,
+        },
         Event::Killed => ShellEvent::Killed,
         _ => return None,
     })

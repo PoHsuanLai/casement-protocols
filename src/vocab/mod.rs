@@ -24,8 +24,8 @@ pub use mac_mods::MacMods;
 pub use receipt::{ReceiptCounts, ReceiptDigest, ReceiptItem, receipt_counts, receipt_digest};
 pub use sensitive::SensitivityLevel;
 pub use shell::{
-    Corner, KeyGesture, OverviewMode, OverviewState, ScreenEdge, ShellRole, Shown, SplitSide,
-    WindowEntry,
+    Corner, DragOutcome, KeyGesture, OverviewMode, OverviewState, ScreenEdge, ShellRole, Shown,
+    SplitSide, WindowEntry,
 };
 pub use space::{SpaceActivity, SpaceKind};
 pub use trusted::{TrustedAnchor, TrustedKind, Withdrawn};

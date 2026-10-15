@@ -4,10 +4,10 @@
 use std::collections::BTreeSet;
 
 use casement_protocols::vocab::{
-    ActorKind, AppLifeKind, AppVisibility, Attention, Corner, Emphasis, GlowCode, KeyGesture,
-    LeaseState, MacMods, MenuSourceKind, Modality, OverviewMode, OverviewState, PlacementMark,
-    ProofKind, Responsiveness, ScreenEdge, SensitivityLevel, Shown, SpaceActivity, SpaceKind,
-    SplitSide, WindowRole, WindowStateKind,
+    ActorKind, AppLifeKind, AppVisibility, Attention, Corner, DragOutcome, Emphasis, GlowCode,
+    KeyGesture, LeaseState, MacMods, MenuSourceKind, Modality, OverviewMode, OverviewState,
+    PlacementMark, ProofKind, Responsiveness, ScreenEdge, SensitivityLevel, Shown, SpaceActivity,
+    SpaceKind, SplitSide, WindowRole, WindowStateKind,
 };
 use desktop_client::quire::{
     AppChange, AppEvent, Lease, Linker, MenuSource, QuireEvent, ShellEvent, SpaceChange,
@@ -707,6 +707,39 @@ fn the_new_space_target_is_lit_while_the_dragged_window_is_over_it() {
     );
     let after = run([over(Shown::Shown), over(Shown::Hidden)]);
     assert!(!after.quire.shell().overview.over_new_space(&dp1));
+}
+
+#[test]
+fn a_window_drag_is_under_way_from_its_begin_to_its_end_and_remembers_the_outcome() {
+    let begin = shell(ShellEvent::WindowDragBegin {
+        output: OutputName::new("DP-1"),
+        window: ToplevelIdentifier::new("w-1"),
+    });
+    let end = |outcome| {
+        shell(ShellEvent::WindowDragEnd {
+            output: OutputName::new("DP-1"),
+            window: ToplevelIdentifier::new("w-1"),
+            outcome,
+        })
+    };
+    let dp1 = OutputName::new("DP-1");
+    let during = run([begin.clone()]);
+    let overview = &during.quire.shell().overview;
+    assert_eq!(
+        overview.dragged_window(&dp1),
+        Some(&ToplevelIdentifier::new("w-1"))
+    );
+    assert!(overview.dragged_window(&OutputName::new("DP-2")).is_none());
+    assert_eq!(overview.last_drag_outcome(&dp1), None);
+    let after = run([begin.clone(), end(DragOutcome::DroppedOnNew)]);
+    let overview = &after.quire.shell().overview;
+    assert!(overview.dragged_window(&dp1).is_none());
+    assert_eq!(
+        overview.last_drag_outcome(&dp1),
+        Some(DragOutcome::DroppedOnNew)
+    );
+    let again = run([begin.clone(), end(DragOutcome::Cancelled), begin]);
+    assert_eq!(again.quire.shell().overview.last_drag_outcome(&dp1), None);
 }
 
 #[test]

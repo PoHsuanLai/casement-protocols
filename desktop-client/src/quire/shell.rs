@@ -10,7 +10,8 @@ use crate::geometry::Rect;
 use crate::keys::SurfaceKey;
 use crate::names::{AppId, OutputName, SpaceId, ToplevelIdentifier};
 use casement_protocols::vocab::{
-    Corner, KeyGesture, MacMods, OverviewMode, OverviewState, ScreenEdge, Shown, SplitSide,
+    Corner, DragOutcome, KeyGesture, MacMods, OverviewMode, OverviewState, ScreenEdge, Shown,
+    SplitSide,
 };
 
 /// One event of `quire_shell_v1`.
@@ -139,6 +140,23 @@ pub enum ShellEvent {
         /// drag ended.
         over: Shown,
     },
+    /// A window drag started in Mission Control on an output (version 4): show which targets
+    /// accept the window.
+    WindowDragBegin {
+        /// The output.
+        output: OutputName,
+        /// The window being dragged.
+        window: ToplevelIdentifier,
+    },
+    /// The window drag in Mission Control is over (version 4): take the accepting state away.
+    WindowDragEnd {
+        /// The output.
+        output: OutputName,
+        /// The window that was dragged.
+        window: ToplevelIdentifier,
+        /// Where it went.
+        outcome: DragOutcome,
+    },
     /// The kill chord was pressed; every agent lease has ended (a moment).
     Killed,
 }
@@ -228,6 +246,8 @@ pub struct Overview {
     pub(crate) outputs: BTreeMap<OutputName, Shown>,
     pub(crate) drop_targets: BTreeMap<OutputName, SpaceId>,
     pub(crate) over_new: BTreeSet<OutputName>,
+    pub(crate) drags: BTreeMap<OutputName, ToplevelIdentifier>,
+    pub(crate) last_outcome: BTreeMap<OutputName, DragOutcome>,
 }
 
 impl Default for Overview {
@@ -243,6 +263,8 @@ impl Default for Overview {
             outputs: BTreeMap::new(),
             drop_targets: BTreeMap::new(),
             over_new: BTreeSet::new(),
+            drags: BTreeMap::new(),
+            last_outcome: BTreeMap::new(),
         }
     }
 }
@@ -291,6 +313,17 @@ impl Overview {
     /// Whether the dragged window is over the new-Space target of `output` (version 3).
     pub fn over_new_space(&self, output: &OutputName) -> bool {
         self.over_new.contains(output)
+    }
+
+    /// The window being dragged on `output` in Mission Control, if a drag is under way
+    /// (version 4). While there is one, the Spaces bar shows its targets as accepting.
+    pub fn dragged_window(&self, output: &OutputName) -> Option<&ToplevelIdentifier> {
+        self.drags.get(output)
+    }
+
+    /// How the last drag on `output` ended, until the next one starts (version 4).
+    pub fn last_drag_outcome(&self, output: &OutputName) -> Option<DragOutcome> {
+        self.last_outcome.get(output).copied()
     }
 }
 
@@ -388,6 +421,16 @@ pub(super) fn reduce_shell(mut shell: Shell, event: ShellEvent) -> Shell {
                 Shown::Shown => shell.overview.over_new.insert(output),
                 _ => shell.overview.over_new.remove(&output),
             };
+        }
+        ShellEvent::WindowDragBegin { output, window } => {
+            shell.overview.last_outcome.remove(&output);
+            shell.overview.drags.insert(output, window);
+        }
+        ShellEvent::WindowDragEnd {
+            output, outcome, ..
+        } => {
+            shell.overview.drags.remove(&output);
+            shell.overview.last_outcome.insert(output, outcome);
         }
         ShellEvent::OverviewDone => {
             shell.overview.slots = std::mem::take(&mut shell.overview.pending_slots);

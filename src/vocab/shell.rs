@@ -153,3 +153,15 @@ wire_enum! {
         Right = 1,
     }
 }
+
+wire_enum! {
+    /// How a window drag in Mission Control ended (`quire_shell_v1.drag_outcome`).
+    DragOutcome {
+        /// Dropped on a Space of the Spaces bar.
+        DroppedOnSpace = 0,
+        /// Dropped on the new-desktop target.
+        DroppedOnNew = 1,
+        /// Dropped on nothing; the window flew back.
+        Cancelled = 2,
+    }
+}
