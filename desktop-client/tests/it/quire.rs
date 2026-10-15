@@ -612,7 +612,7 @@ fn a_split_choice_collects_its_candidates_and_ends_with_its_first_window() {
         first: id("w-1"),
         side: SplitSide::Left,
     });
-    let candidate = |name: &str| shell(ShellEvent::SplitCandidate(id(name)));
+    let candidate = |name: &str| shell(ShellEvent::SplitCandidate(ToplevelIdentifier::new(name)));
     let events = vec![choose, candidate("w-2"), candidate("w-3")];
     let offered = run(events.clone());
     let choice = offered
