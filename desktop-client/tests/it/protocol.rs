@@ -323,5 +323,5 @@ fn every_command_has_a_distinct_kind_and_needs_something() {
         );
         kinds.push(command.kind());
     }
-    assert_eq!(kinds.len(), 38);
+    assert_eq!(kinds.len(), 39);
 }
