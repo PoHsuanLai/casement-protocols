@@ -222,7 +222,11 @@ fn the_shells_version_two_messages_are_appended_and_say_since_two() {
         (
             "requests",
             &shell.requests,
-            &["get_space_capture_source", "space_target_clear", "space_target"][..],
+            &[
+                "get_space_capture_source",
+                "space_target_clear",
+                "space_target",
+            ][..],
         ),
         (
             "events",

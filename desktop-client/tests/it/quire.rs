@@ -671,7 +671,10 @@ fn the_drop_target_follows_the_dragged_window_and_ends_empty() {
     };
     let over = run([target(Some("s-2"))]);
     assert_eq!(
-        over.quire.shell().overview.drop_target(&OutputName::new("DP-1")),
+        over.quire
+            .shell()
+            .overview
+            .drop_target(&OutputName::new("DP-1")),
         Some(&SpaceId::new("s-2"))
     );
     let after = run([target(Some("s-2")), target(None)]);

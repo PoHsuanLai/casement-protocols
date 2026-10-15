@@ -221,7 +221,10 @@ pub(super) fn send(wire: &Wire, command: DesktopCommand) -> Result<(), CommandEr
         DesktopCommand::DivideSplit { window, share } => {
             shell(wire, kind)?.split_divide(window.as_str().to_owned(), share);
         }
-        DesktopCommand::SetSpaceTargets { output: name, targets } => {
+        DesktopCommand::SetSpaceTargets {
+            output: name,
+            targets,
+        } => {
             let shell = shell(wire, kind)?;
             if shell.version() < 2 {
                 return Err(CommandError::NotBound {

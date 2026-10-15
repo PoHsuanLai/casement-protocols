@@ -248,7 +248,12 @@ pub const ERRORS: &[(&str, &[&str])] = &[
     ),
     (
         "quire_shell_v1",
-        &["role_taken", "bad_surface", "unknown_toplevel", "bad_target"],
+        &[
+            "role_taken",
+            "bad_surface",
+            "unknown_toplevel",
+            "bad_target",
+        ],
     ),
     ("quire_window_manager_v1", &["already_constructed"]),
     ("quire_window_v1", &["defunct_toplevel", "bad_role"]),
