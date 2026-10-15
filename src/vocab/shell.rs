@@ -143,3 +143,13 @@ wire_enum! {
         Centre = 14,
     }
 }
+
+wire_enum! {
+    /// A half of the screen in a Split View (`quire_shell_v1.split_side`).
+    SplitSide {
+        /// The left half.
+        Left = 0,
+        /// The right half.
+        Right = 1,
+    }
+}

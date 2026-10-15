@@ -148,6 +148,14 @@
       <entry name="centre" value="14" summary="Center"/>
     </enum>
 
+    <enum name="split_side">
+      <description summary="a half of the screen in a Split View">
+        The half the first window of a Split View took.
+      </description>
+      <entry name="left" value="0" summary="the left half"/>
+      <entry name="right" value="1" summary="the right half"/>
+    </enum>
+
     <request name="set_role">
       <description summary="give a shell surface its role">
         `surface` must be a layer surface of this client; anything else raises `bad_surface`.
@@ -204,6 +212,31 @@
       </description>
       <arg name="toplevel" type="string" summary="ext-foreign-toplevel identifier"/>
       <arg name="entry" type="uint" enum="window_entry"/>
+    </request>
+
+    <request name="split_pick">
+      <description summary="the person picked the other half of a Split View">
+        Answers `split_choose`: `toplevel` is one of the candidates sent after it. A window that is
+        no candidate now, or no choosing, is ignored.
+      </description>
+      <arg name="toplevel" type="string" summary="ext-foreign-toplevel identifier"/>
+    </request>
+
+    <request name="split_cancel">
+      <description summary="the person turned the choice of a Split View down">
+        Escape, or a click elsewhere. The first window stays alone, full screen. Without a
+        choosing it is ignored.
+      </description>
+    </request>
+
+    <request name="split_divide">
+      <description summary="the divider of a Split View was moved">
+        `toplevel` is either window of the pair. `share` is the leading (left) window's part of
+        the width, in thousandths; the compositor keeps it between 200 and 800 and holds each half
+        to its window's smallest width. A window that is in no Split View is ignored.
+      </description>
+      <arg name="toplevel" type="string" summary="ext-foreign-toplevel identifier"/>
+      <arg name="share" type="uint" summary="thousandths of the width"/>
     </request>
 
     <request name="destroy" type="destructor">
@@ -332,6 +365,31 @@
       <arg name="x" type="int"/>
       <arg name="y" type="int"/>
       <arg name="enabled" type="uint" summary="bit per window_entry code"/>
+    </event>
+
+    <event name="split_choose">
+      <description summary="offer the other half of a Split View">
+        `first` went full screen on `side`. The shell offers the windows named by the
+        `split_candidate` events that follow at once, most recently used first, for the other
+        half. The offer lasts until `split_choice_end`; the answer is `split_pick` or
+        `split_cancel`.
+      </description>
+      <arg name="first" type="string" summary="ext-foreign-toplevel identifier"/>
+      <arg name="side" type="uint" enum="split_side"/>
+    </event>
+
+    <event name="split_candidate">
+      <description summary="a window that can fill the other half">
+        One per candidate, straight after `split_choose`.
+      </description>
+      <arg name="toplevel" type="string" summary="ext-foreign-toplevel identifier"/>
+    </event>
+
+    <event name="split_choice_end">
+      <description summary="the choice of a Split View is over">
+        A pick, a cancel, or `first` left full screen or closed: the shell takes its offer away.
+      </description>
+      <arg name="first" type="string" summary="ext-foreign-toplevel identifier"/>
     </event>
 
     <event name="killed">

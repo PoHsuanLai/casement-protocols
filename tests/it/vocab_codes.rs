@@ -71,6 +71,7 @@ macro_rules! check_side {
         same_codes::<vocab::ScreenEdge, shell::ScreenEdge>();
         same_codes::<vocab::Shown, shell::Shown>();
         same_codes::<vocab::WindowEntry, shell::WindowEntry>();
+        same_codes::<vocab::SplitSide, shell::SplitSide>();
         same_codes::<vocab::WindowRole, quire_window::WindowRole>();
         same_codes::<vocab::TileZone, quire_window::TileZone>();
         same_codes::<vocab::PlaceTarget, quire_window::PlaceTarget>();

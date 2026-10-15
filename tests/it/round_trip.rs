@@ -8,8 +8,9 @@ use casement_protocols::vocab::{
     FrameMode, GlowCode, KeyGesture, LeaseState, MacMods, MaskReason, MenuSourceKind, Modality,
     OverviewMode, OverviewState, PlaceKind, PlaceTarget, PlacementMark, PressEdge, ProofKind,
     ReceiptCounts, ReceiptDigest, ReceiptItem, Responsiveness, RevokeReason, RunMode, ScreenEdge,
-    SensitivityLevel, ShellRole, Shown, SpaceActivity, SpaceKind, Suspend, TileZone, Toggle,
-    TrustedAnchor, TrustedKind, WindowEntry, WindowRole, WindowStateKind, WireCode, Withdrawn,
+    SensitivityLevel, ShellRole, Shown, SpaceActivity, SpaceKind, SplitSide, Suspend, TileZone,
+    Toggle, TrustedAnchor, TrustedKind, WindowEntry, WindowRole, WindowStateKind, WireCode,
+    Withdrawn,
 };
 use serde::Serialize;
 use serde::de::DeserializeOwned;
@@ -69,6 +70,7 @@ fn every_vocab_enum_round_trips() {
     every_value_round_trips::<Corner>("Corner");
     every_value_round_trips::<Shown>("Shown");
     every_value_round_trips::<WindowEntry>("WindowEntry");
+    every_value_round_trips::<SplitSide>("SplitSide");
     every_value_round_trips::<OverviewMode>("OverviewMode");
     every_value_round_trips::<OverviewState>("OverviewState");
     every_value_round_trips::<RunMode>("RunMode");
