@@ -11,7 +11,8 @@ use casement_protocols::vocab::{
     GlowCode, KeyGesture, LeaseState, MacMods, MaskReason, MenuSourceKind, Modality, OverviewMode,
     OverviewState, PlaceKind, PlaceTarget, PlacementMark, ProofKind, Responsiveness, RevokeReason,
     RunMode, ScreenEdge, SensitivityLevel, ShellRole, Shown, SpaceActivity, SpaceKind, Suspend,
-    TileZone, Toggle, TrustedAnchor, TrustedKind, WindowRole, WindowStateKind, WireCode, Withdrawn,
+    TileZone, Toggle, TrustedAnchor, TrustedKind, WindowEntry, WindowRole, WindowStateKind,
+    WireCode, Withdrawn,
 };
 use support::frozen::{ERRORS, EXTERNAL, INTERFACES};
 use support::{Interface, Protocol, protocols};
@@ -94,6 +95,7 @@ const VOCAB: &[(&str, &str, Entries)] = &[
     ("quire_shell_v1", "corner", entries::<Corner>),
     ("quire_shell_v1", "screen_edge", entries::<ScreenEdge>),
     ("quire_shell_v1", "shown", entries::<Shown>),
+    ("quire_shell_v1", "window_entry", entries::<WindowEntry>),
     ("quire_window_v1", "window_role", entries::<WindowRole>),
     ("quire_window_v1", "tile_zone", entries::<TileZone>),
     ("quire_window_v1", "place_target", entries::<PlaceTarget>),

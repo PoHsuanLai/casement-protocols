@@ -5,9 +5,11 @@ use crate::geometry::Rect;
 use crate::keys::{
     AppKey, CaptureId, ConfigId, GroupKey, SpaceKey, SurfaceKey, ToplevelKey, WorkspaceKey,
 };
-use crate::names::OutputName;
+use crate::names::{OutputName, ToplevelIdentifier};
 use crate::output::OutputConfig;
-use casement_protocols::vocab::{Assign, OverviewMode, PlaceTarget, ShellRole, Toggle};
+use casement_protocols::vocab::{
+    Assign, OverviewMode, PlaceTarget, ShellRole, Toggle, WindowEntry,
+};
 
 /// A request to the compositor. Targets are keys from [`crate::DesktopState`].
 ///
@@ -152,6 +154,14 @@ pub enum DesktopCommand {
     },
     /// Move every window aside, or back. Quire arm, shell role.
     ShowDesktop(Toggle),
+    /// The person picked an entry of a window's menu (`ShellEvent::WindowMenu`). A dismissal
+    /// sends nothing. Quire arm, shell role.
+    PickWindowMenu {
+        /// The window, by the identifier the menu event carried.
+        window: ToplevelIdentifier,
+        /// The entry.
+        entry: WindowEntry,
+    },
 }
 
 /// The variant of a [`DesktopCommand`] without its data, for errors and logs.
@@ -234,6 +244,8 @@ pub enum CommandKind {
     Overview,
     /// [`DesktopCommand::ShowDesktop`].
     ShowDesktop,
+    /// [`DesktopCommand::PickWindowMenu`].
+    PickWindowMenu,
 }
 
 impl DesktopCommand {
@@ -278,6 +290,7 @@ impl DesktopCommand {
             Self::CancelSwitcher => CommandKind::CancelSwitcher,
             Self::Overview { .. } => CommandKind::Overview,
             Self::ShowDesktop(_) => CommandKind::ShowDesktop,
+            Self::PickWindowMenu { .. } => CommandKind::PickWindowMenu,
         }
     }
 }

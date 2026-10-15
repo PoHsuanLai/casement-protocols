@@ -1,6 +1,8 @@
 //! Offered protocols and `supports`.
 
-use casement_protocols::vocab::{Assign, OverviewMode, PlaceTarget, ShellRole, Toggle};
+use casement_protocols::vocab::{
+    Assign, OverviewMode, PlaceTarget, ShellRole, Toggle, WindowEntry,
+};
 use desktop_client::capture::CaptureRequest;
 use desktop_client::output::OutputConfig;
 use desktop_client::{AppKey, CommandKind, DesktopBackend, Rect, SpaceKey, requires_on};
@@ -207,7 +209,14 @@ fn quire_only() -> Vec<(DesktopCommand, Vec<Protocol>)> {
             },
             shell.clone(),
         ),
-        (DesktopCommand::ShowDesktop(Toggle::Off), shell),
+        (DesktopCommand::ShowDesktop(Toggle::Off), shell.clone()),
+        (
+            DesktopCommand::PickWindowMenu {
+                window: desktop_client::ToplevelIdentifier::new("w-1"),
+                entry: WindowEntry::Fill,
+            },
+            shell,
+        ),
     ]
 }
 

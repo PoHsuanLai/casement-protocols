@@ -160,3 +160,16 @@ sill's `desktop_wl` is not touched here).
    sill's copy of the pairing heuristic never existed on the Quire arm.
 9. **Tests.** Drive the same mapping with `FakeDesktop::with_config` and scripted
    `QuireEvent`s (no compositor); `Linker` needs no fake.
+
+## wave-2026-10-15/winwire
+
+`quire_shell_v1` gained the window menu, in place (the draft says version 1 may change with every client and
+server updated together; no version bump, no pinned bytes: only `quire-agent-v1.xml` is pinned).
+
+- Enum `window_entry` (15 entries, codes 0..14 in menu order, same as casement's `MenuEntry::code`), vocab type
+  `WindowEntry`.
+- Event `window_menu(toplevel, x, y, enabled)`, request `window_menu_pick(toplevel, entry)`. The request sits before
+  `destroy`, the event before `killed`; the frozen table in `tests/it/support/frozen.rs` follows.
+- `desktop-client`: `ShellEvent::WindowMenu { window, at, enabled }` (a moment, no state) and
+  `DesktopCommand::PickWindowMenu { window, entry }` (Quire arm, shell role).
+- Written without a compiler; check `cargo test` here before landing casement and sill.

@@ -110,6 +110,7 @@ pub const INTERFACES: &[(&str, &str, &[&str], &[&str])] = &[
             "switcher_cancel()",
             "overview(mode: uint<overview_mode>, toggle: uint<quire_desktop_window_v1.toggle>)",
             "show_desktop(toggle: uint<quire_desktop_window_v1.toggle>)",
+            "window_menu_pick(toplevel: string, entry: uint<window_entry>)",
             "destroy() [destructor]",
         ],
         &[
@@ -128,6 +129,7 @@ pub const INTERFACES: &[(&str, &str, &[&str], &[&str])] = &[
             "menu_flash(app_key: string, item: uint)",
             "bell(app_key: string)",
             "reopen(app_key: string)",
+            "window_menu(toplevel: string, x: int, y: int, enabled: uint)",
             "killed()",
         ],
     ),

@@ -8,7 +8,7 @@ use casement_protocols::vocab::MacMods;
 
 use super::wire::{Wire, raw, vocab};
 use crate::event::DesktopEvent;
-use crate::geometry::Rect;
+use crate::geometry::{Point, Rect};
 use crate::keys::SurfaceKey;
 use crate::names::{AppId, SpaceId, ToplevelIdentifier};
 use crate::quire::{QuireEvent, ShellEvent};
@@ -78,6 +78,16 @@ fn translate(wire: &Wire, event: quire_shell_v1::Event) -> Option<ShellEvent> {
         },
         Event::Bell { app_key } => ShellEvent::Bell(AppId::new(app_key)),
         Event::Reopen { app_key } => ShellEvent::Reopen(AppId::new(app_key)),
+        Event::WindowMenu {
+            toplevel,
+            x,
+            y,
+            enabled,
+        } => ShellEvent::WindowMenu {
+            window: ToplevelIdentifier::new(toplevel),
+            at: Point::new(x, y),
+            enabled,
+        },
         Event::Killed => ShellEvent::Killed,
         _ => return None,
     })

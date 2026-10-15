@@ -126,6 +126,28 @@
       <entry name="shown" value="1" summary="shown"/>
     </enum>
 
+    <enum name="window_entry">
+      <description summary="an entry of a window's menu">
+        The menu the green light opens, in menu order. The shell draws the words; the compositor
+        names the entries by these numbers.
+      </description>
+      <entry name="enter_full_screen" value="0" summary="Enter Full Screen"/>
+      <entry name="exit_full_screen" value="1" summary="Exit Full Screen"/>
+      <entry name="left" value="2" summary="Move and resize: the left half"/>
+      <entry name="right" value="3" summary="Move and resize: the right half"/>
+      <entry name="top" value="4" summary="Move and resize: the top half"/>
+      <entry name="bottom" value="5" summary="Move and resize: the bottom half"/>
+      <entry name="top_left" value="6" summary="Move and resize: the top left quarter"/>
+      <entry name="top_right" value="7" summary="Move and resize: the top right quarter"/>
+      <entry name="bottom_left" value="8" summary="Move and resize: the bottom left quarter"/>
+      <entry name="bottom_right" value="9" summary="Move and resize: the bottom right quarter"/>
+      <entry name="return_to_previous_size" value="10" summary="Move and resize: Return to Previous Size"/>
+      <entry name="tile_left_of_screen" value="11" summary="Full Screen Tile: Left of Screen"/>
+      <entry name="tile_right_of_screen" value="12" summary="Full Screen Tile: Right of Screen"/>
+      <entry name="fill" value="13" summary="Fill"/>
+      <entry name="centre" value="14" summary="Center"/>
+    </enum>
+
     <request name="set_role">
       <description summary="give a shell surface its role">
         `surface` must be a layer surface of this client; anything else raises `bad_surface`.
@@ -173,6 +195,15 @@
     <request name="show_desktop">
       <description summary="move every window aside, or back"/>
       <arg name="toggle" type="uint" enum="quire_desktop_window_v1.toggle"/>
+    </request>
+
+    <request name="window_menu_pick">
+      <description summary="the person picked an entry of a window's menu">
+        Answers `window_menu`. An unknown window or entry is ignored; so is an entry the window's
+        state does not offer.
+      </description>
+      <arg name="toplevel" type="string" summary="ext-foreign-toplevel identifier"/>
+      <arg name="entry" type="uint" enum="window_entry"/>
     </request>
 
     <request name="destroy" type="destructor">
@@ -287,6 +318,20 @@
         The shell decides what reopening means for that app.
       </description>
       <arg name="app_key" type="string"/>
+    </event>
+
+    <event name="window_menu">
+      <description summary="show a window's menu">
+        The pointer rested on the window's green light, or the window asked for its menu. The
+        shell draws the menu at (`x`, `y`), in global logical pixels, with the entries of
+        `window_entry` in menu order. Bit `n` of `enabled` is set when the entry with code `n`
+        can be picked now; the others are shown dimmed. A pick comes back as `window_menu_pick`;
+        a dismissal sends nothing.
+      </description>
+      <arg name="toplevel" type="string" summary="ext-foreign-toplevel identifier"/>
+      <arg name="x" type="int"/>
+      <arg name="y" type="int"/>
+      <arg name="enabled" type="uint" summary="bit per window_entry code"/>
     </event>
 
     <event name="killed">

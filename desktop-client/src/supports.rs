@@ -89,7 +89,8 @@ pub fn requires_on(
         | DesktopCommand::PickSwitcher(_)
         | DesktopCommand::CancelSwitcher
         | DesktopCommand::Overview { .. }
-        | DesktopCommand::ShowDesktop(_) => QUIRE_SHELL,
+        | DesktopCommand::ShowDesktop(_)
+        | DesktopCommand::PickWindowMenu { .. } => QUIRE_SHELL,
     }
 }
 

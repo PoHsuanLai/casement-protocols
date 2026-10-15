@@ -50,7 +50,8 @@ pub(super) fn carries(command: &DesktopCommand, quire_arm: bool) -> bool {
         | DesktopCommand::PickSwitcher(_)
         | DesktopCommand::CancelSwitcher
         | DesktopCommand::Overview { .. }
-        | DesktopCommand::ShowDesktop(_) => true,
+        | DesktopCommand::ShowDesktop(_)
+        | DesktopCommand::PickWindowMenu { .. } => true,
         _ => false,
     }
 }
@@ -205,6 +206,9 @@ pub(super) fn send(wire: &Wire, command: DesktopCommand) -> Result<(), CommandEr
             shell(wire, kind)?.overview(generated(mode)?, generated(toggle)?);
         }
         DesktopCommand::ShowDesktop(toggle) => shell(wire, kind)?.show_desktop(generated(toggle)?),
+        DesktopCommand::PickWindowMenu { window, entry } => {
+            shell(wire, kind)?.window_menu_pick(window.as_str().to_owned(), generated(entry)?);
+        }
         _ => {}
     }
     Ok(())

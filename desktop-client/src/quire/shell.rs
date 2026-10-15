@@ -5,6 +5,7 @@
 
 use std::collections::BTreeMap;
 
+use crate::geometry::Point;
 use crate::geometry::Rect;
 use crate::keys::SurfaceKey;
 use crate::names::{AppId, SpaceId, ToplevelIdentifier};
@@ -90,6 +91,16 @@ pub enum ShellEvent {
     Bell(AppId),
     /// An app was activated with no windows; the shell decides what reopening means (a moment).
     Reopen(AppId),
+    /// The pointer rested on a window's green light: draw its menu there (a moment). A pick goes
+    /// back as `DesktopCommand::PickWindowMenu`; a dismissal sends nothing.
+    WindowMenu {
+        /// The window's ext-foreign-toplevel identifier.
+        window: ToplevelIdentifier,
+        /// Where the menu's top left goes, in global logical pixels.
+        at: Point,
+        /// A bit per `WindowEntry` code, set when the entry can be picked.
+        enabled: u32,
+    },
     /// The kill chord was pressed; every agent lease has ended (a moment).
     Killed,
 }
@@ -279,6 +290,7 @@ pub(super) fn reduce_shell(mut shell: Shell, event: ShellEvent) -> Shell {
         | ShellEvent::MenuFlash { .. }
         | ShellEvent::Bell(_)
         | ShellEvent::Reopen(_)
+        | ShellEvent::WindowMenu { .. }
         | ShellEvent::Killed => {}
     }
     shell

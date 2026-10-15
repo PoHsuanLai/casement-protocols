@@ -676,6 +676,11 @@ fn moments_change_no_state() {
         },
         ShellEvent::Bell(AppId::new("a")),
         ShellEvent::Reopen(AppId::new("a")),
+        ShellEvent::WindowMenu {
+            window: ToplevelIdentifier::new("w-1"),
+            at: desktop_client::Point::new(40, 52),
+            enabled: 0b11,
+        },
         ShellEvent::Killed,
     ];
     for moment in moments {

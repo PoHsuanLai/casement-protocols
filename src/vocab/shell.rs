@@ -107,3 +107,39 @@ wire_enum! {
         Tracking = 4,
     }
 }
+
+wire_enum! {
+    /// An entry of a window's menu, in menu order (`quire_shell_v1.window_entry`).
+    WindowEntry {
+        /// Enter Full Screen.
+        EnterFullScreen = 0,
+        /// Exit Full Screen.
+        ExitFullScreen = 1,
+        /// Move and resize: the left half.
+        Left = 2,
+        /// Move and resize: the right half.
+        Right = 3,
+        /// Move and resize: the top half.
+        Top = 4,
+        /// Move and resize: the bottom half.
+        Bottom = 5,
+        /// Move and resize: the top left quarter.
+        TopLeft = 6,
+        /// Move and resize: the top right quarter.
+        TopRight = 7,
+        /// Move and resize: the bottom left quarter.
+        BottomLeft = 8,
+        /// Move and resize: the bottom right quarter.
+        BottomRight = 9,
+        /// Move and resize: Return to Previous Size.
+        ReturnToPreviousSize = 10,
+        /// Full Screen Tile: Left of Screen.
+        TileLeftOfScreen = 11,
+        /// Full Screen Tile: Right of Screen.
+        TileRightOfScreen = 12,
+        /// Fill.
+        Fill = 13,
+        /// Center.
+        Centre = 14,
+    }
+}
