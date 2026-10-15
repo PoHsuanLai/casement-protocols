@@ -118,6 +118,7 @@ pub const INTERFACES: &[(&str, &str, &[&str], &[&str])] = &[
             "get_space_capture_source(source: new_id ext_image_capture_source_v1, output: wl_output, space_id: string, width: uint, height: uint)",
             "space_target_clear(output: wl_output)",
             "space_target(output: wl_output, space_id: string, x: int, y: int, width: uint, height: uint)",
+            "space_target_new(output: wl_output, x: int, y: int, width: uint, height: uint)",
         ],
         &[
             "modifiers(surface: wl_surface, mods: uint<mac_mods>)",
@@ -142,6 +143,7 @@ pub const INTERFACES: &[(&str, &str, &[&str], &[&str])] = &[
             "killed()",
             "overview_output(output: wl_output, shown: uint<shown>)",
             "drop_target(output: wl_output, space_id: string?)",
+            "drop_target_new(output: wl_output, over: uint<shown>)",
         ],
     ),
     (

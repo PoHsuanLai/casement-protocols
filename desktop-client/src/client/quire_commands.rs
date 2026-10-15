@@ -56,7 +56,8 @@ pub(super) fn carries(command: &DesktopCommand, quire_arm: bool) -> bool {
         | DesktopCommand::PickSplit(_)
         | DesktopCommand::CancelSplit
         | DesktopCommand::DivideSplit { .. }
-        | DesktopCommand::SetSpaceTargets { .. } => true,
+        | DesktopCommand::SetSpaceTargets { .. }
+        | DesktopCommand::SetNewSpaceTarget { .. } => true,
         _ => false,
     }
 }
@@ -245,6 +246,19 @@ pub(super) fn send(wire: &Wire, command: DesktopCommand) -> Result<(), CommandEr
                     rect.h,
                 );
             }
+        }
+        DesktopCommand::SetNewSpaceTarget { output: name, rect } => {
+            let shell = shell(wire, kind)?;
+            if shell.version() < 3 {
+                return Err(CommandError::NotBound {
+                    command: kind,
+                    needs: Protocol::QuireShell,
+                });
+            }
+            let output = output(wire, &name)?;
+            // An empty rectangle removes the target.
+            let rect = rect.unwrap_or_default();
+            shell.space_target_new(output, rect.x, rect.y, rect.w, rect.h);
         }
         _ => {}
     }

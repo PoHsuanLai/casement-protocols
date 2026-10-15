@@ -183,6 +183,16 @@ pub enum DesktopCommand {
         /// The targets, in global logical pixels; later ones are in front.
         targets: Vec<SpaceTarget>,
     },
+    /// Sets, or with `None` removes, the rectangle of `output` a window dragged in Mission Control
+    /// can be dropped on to make a new Space with it (version 3). It stays when
+    /// [`SetSpaceTargets`](Self::SetSpaceTargets) replaces the Space targets. Quire arm, shell
+    /// role.
+    SetNewSpaceTarget {
+        /// The output.
+        output: OutputName,
+        /// The rectangle in global logical pixels; `None` removes the target.
+        rect: Option<Rect>,
+    },
 }
 
 /// A place a dragged window can be dropped on a Space.
@@ -292,6 +302,8 @@ pub enum CommandKind {
     DivideSplit,
     /// [`DesktopCommand::SetSpaceTargets`].
     SetSpaceTargets,
+    /// [`DesktopCommand::SetNewSpaceTarget`].
+    SetNewSpaceTarget,
 }
 
 impl DesktopCommand {
@@ -341,6 +353,7 @@ impl DesktopCommand {
             Self::CancelSplit => CommandKind::CancelSplit,
             Self::DivideSplit { .. } => CommandKind::DivideSplit,
             Self::SetSpaceTargets { .. } => CommandKind::SetSpaceTargets,
+            Self::SetNewSpaceTarget { .. } => CommandKind::SetNewSpaceTarget,
         }
     }
 }

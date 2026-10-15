@@ -3,7 +3,7 @@
 //! Most are moments (a hot corner, a bell, the kill chord) and change no state; the modifiers,
 //! the switcher, the overview layout and the reveals are state the shell draws from.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use crate::geometry::Point;
 use crate::geometry::Rect;
@@ -130,6 +130,15 @@ pub enum ShellEvent {
         /// The Space under the dragged window; `None` when over none, or the drag ended.
         space: Option<SpaceId>,
     },
+    /// The window dragged in Mission Control entered or left the new-Space target of an output
+    /// (version 3): highlight the "add desktop" tile.
+    DropTargetNew {
+        /// The output.
+        output: OutputName,
+        /// `Shown` while the dragged window is over the target; `Hidden` when it left or the
+        /// drag ended.
+        over: Shown,
+    },
     /// The kill chord was pressed; every agent lease has ended (a moment).
     Killed,
 }
@@ -218,6 +227,7 @@ pub struct Overview {
     pub(crate) pending_spaces: Vec<OverviewSpaceSlot>,
     pub(crate) outputs: BTreeMap<OutputName, Shown>,
     pub(crate) drop_targets: BTreeMap<OutputName, SpaceId>,
+    pub(crate) over_new: BTreeSet<OutputName>,
 }
 
 impl Default for Overview {
@@ -232,6 +242,7 @@ impl Default for Overview {
             pending_spaces: Vec::new(),
             outputs: BTreeMap::new(),
             drop_targets: BTreeMap::new(),
+            over_new: BTreeSet::new(),
         }
     }
 }
@@ -275,6 +286,11 @@ impl Overview {
     /// The Space target the dragged window is over on `output`, if any.
     pub fn drop_target(&self, output: &OutputName) -> Option<&SpaceId> {
         self.drop_targets.get(output)
+    }
+
+    /// Whether the dragged window is over the new-Space target of `output` (version 3).
+    pub fn over_new_space(&self, output: &OutputName) -> bool {
+        self.over_new.contains(output)
     }
 }
 
@@ -367,6 +383,12 @@ pub(super) fn reduce_shell(mut shell: Shell, event: ShellEvent) -> Shell {
                 shell.overview.drop_targets.remove(&output);
             }
         },
+        ShellEvent::DropTargetNew { output, over } => {
+            match over {
+                Shown::Shown => shell.overview.over_new.insert(output),
+                _ => shell.overview.over_new.remove(&output),
+            };
+        }
         ShellEvent::OverviewDone => {
             shell.overview.slots = std::mem::take(&mut shell.overview.pending_slots);
             shell.overview.spaces = std::mem::take(&mut shell.overview.pending_spaces);

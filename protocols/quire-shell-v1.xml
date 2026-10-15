@@ -36,10 +36,12 @@
     This protocol is a draft. Until it is declared stable, version 1 may change in place with
     every client and the server updated together. Version 2 adds, without touching version 1's
     messages or opcodes, which outputs Mission Control is open on, Space pictures and dropping
-    a window on a Space in Mission Control; every message it adds says `since="2"`.
+    a window on a Space in Mission Control; every message it adds says `since="2"`. Version 3 adds, again
+    after everything older, a "new desktop" drop target: dropping a window on it makes a Space with the
+    window; every message it adds says `since="3"`.
   </description>
 
-  <interface name="quire_shell_v1" version="2">
+  <interface name="quire_shell_v1" version="3">
     <description summary="the shell's global">
       Advertised on Shell connections only.
 
@@ -410,8 +412,11 @@
         the session's buffer constraints announce that size, and a frame is sent only when
         something in the Space changed since the last one. The windows are drawn without their frames. A Space
         that does not exist, or is not on `output`, gives a source whose sessions are stopped at
-        once; so does a Space that is removed while the session lives. This version draws the
-        Space the output shows now; any other Space gives a source whose sessions are stopped.
+        once; so does a Space that is removed while the session lives. Version 2 drew only the
+        Space the output shows now. From version 3 any desktop Space of the output has a picture:
+        the windows of a Space that is not shown are laid out where they would sit if it were
+        shown, for the picture only, and the picture is sent again when one of them changes. A
+        full-screen or Split View Space shows its windows as they sit.
       </description>
       <arg name="source" type="new_id" interface="ext_image_capture_source_v1"/>
       <arg name="output" type="object" interface="wl_output"/>
@@ -443,6 +448,22 @@
       <arg name="height" type="uint"/>
     </request>
 
+    <request name="space_target_new" since="3">
+      <description summary="the place a window can be dropped to make a new Space">
+        While a window is dragged in Mission Control, releasing it over this rectangle (the
+        Spaces bar's "add desktop" tile) makes a new Space on `output` and moves the window to
+        it; Mission Control stays open. The rectangle is in global logical pixels, like
+        `space_target`; it is in front of every `space_target` rectangle of the output and there
+        is one per output, a later request replaces it. An empty rectangle removes it (no
+        error). `space_target_clear` leaves it alone.
+      </description>
+      <arg name="output" type="object" interface="wl_output"/>
+      <arg name="x" type="int"/>
+      <arg name="y" type="int"/>
+      <arg name="width" type="uint"/>
+      <arg name="height" type="uint"/>
+    </request>
+
     <event name="overview_output" since="2">
       <description summary="Mission Control is open or closed on an output">
         Sent for every output, just before each `overview_state`, and for an output that is
@@ -466,6 +487,17 @@
       </description>
       <arg name="output" type="object" interface="wl_output"/>
       <arg name="space_id" type="string" allow-null="true" summary="the Space's id"/>
+    </event>
+
+    <event name="drop_target_new" since="3">
+      <description summary="the dragged window is over the new-Space target">
+        While a window is dragged in Mission Control, the pointer entered (`shown`) or left
+        (`hidden`) the `space_target_new` rectangle of `output`: the shell highlights the "add
+        desktop" tile. It is sent `hidden` when the drag ends, by a drop or by the window flying
+        back. `drop_target` is sent null for the same output when this one is `shown`.
+      </description>
+      <arg name="output" type="object" interface="wl_output"/>
+      <arg name="over" type="uint" enum="shown"/>
     </event>
   </interface>
 </protocol>

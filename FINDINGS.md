@@ -208,3 +208,22 @@ casement must keep working.
   (one frame; ask again after a change), the shell is bound at `1..=2`.
 - Tests: `the_shells_version_two_messages_are_appended_and_say_since_two`, the frozen table, the error table, desktop-client
   protocol and reducer tests. Land casement-protocols first.
+
+## wave-2026-10-15/mc3
+
+`quire_shell_v1` is now **version 3** (casement lane `cas10-mc3`). Written without a compiler. Version 1 and 2 messages and
+opcodes are untouched; the new ones come last and say `since="3"`.
+
+- Request `space_target_new(output, x, y, width, height)`: the "add desktop" tile of the shell's Spaces bar. A window dropped on
+  it makes a Space on `output` and moves the window there; Mission Control stays open. One per output, a later request
+  replaces it, an empty rectangle removes it (no error, unlike `space_target`), `space_target_clear` leaves it alone (so
+  `SetSpaceTargets` on the desktop-client does not drop it). It is in front of every `space_target` rectangle.
+- Event `drop_target_new(output, over: shown)`: the dragged window entered or left that rectangle; `hidden` when the drag ends.
+  `drop_target` is sent null at the same time as `shown`, so the shell never lights two tiles. It reuses the `shown` enum
+  (no new enum, no vocab change).
+- `get_space_capture_source`: from version 3 compositors draw Spaces that are not shown (layout only, no motion). No message
+  changed; the description says so.
+- `desktop-client`: `DesktopCommand::SetNewSpaceTarget { output, rect: Option<Rect> }` (44 kinds), `ShellEvent::DropTargetNew`,
+  `Overview::over_new_space(&output)`, the shell is bound at `1..=3`.
+- Tests: `the_shells_newer_messages_are_appended_in_version_order_and_say_since` (replaces the version-2-only test), the frozen
+  table, interface version 3, desktop-client protocol (44 kinds, needs the shell) and reducer test. Land this first.

@@ -689,6 +689,27 @@ fn the_drop_target_follows_the_dragged_window_and_ends_empty() {
 }
 
 #[test]
+fn the_new_space_target_is_lit_while_the_dragged_window_is_over_it() {
+    let over = |over| {
+        shell(ShellEvent::DropTargetNew {
+            output: OutputName::new("DP-1"),
+            over,
+        })
+    };
+    let lit = run([over(Shown::Shown)]);
+    let dp1 = OutputName::new("DP-1");
+    assert!(lit.quire.shell().overview.over_new_space(&dp1));
+    assert!(
+        !lit.quire
+            .shell()
+            .overview
+            .over_new_space(&OutputName::new("DP-2"))
+    );
+    let after = run([over(Shown::Shown), over(Shown::Hidden)]);
+    assert!(!after.quire.shell().overview.over_new_space(&dp1));
+}
+
+#[test]
 fn a_candidate_with_no_choosing_is_dropped() {
     let state = run([shell(ShellEvent::SplitCandidate(ToplevelIdentifier::new(
         "w-2",

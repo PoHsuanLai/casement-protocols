@@ -97,7 +97,8 @@ pub fn requires_on(
         | DesktopCommand::PickSplit(_)
         | DesktopCommand::CancelSplit
         | DesktopCommand::DivideSplit { .. }
-        | DesktopCommand::SetSpaceTargets { .. } => QUIRE_SHELL,
+        | DesktopCommand::SetSpaceTargets { .. }
+        | DesktopCommand::SetNewSpaceTarget { .. } => QUIRE_SHELL,
     }
 }
 

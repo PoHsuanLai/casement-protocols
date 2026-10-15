@@ -106,6 +106,10 @@ fn translate(wire: &Wire, event: quire_shell_v1::Event) -> Option<ShellEvent> {
             output: wire.output_name(&output)?,
             space: space_id.map(SpaceId::new),
         },
+        Event::DropTargetNew { output, over } => ShellEvent::DropTargetNew {
+            output: wire.output_name(&output)?,
+            over: vocab(over)?,
+        },
         Event::Killed => ShellEvent::Killed,
         _ => return None,
     })

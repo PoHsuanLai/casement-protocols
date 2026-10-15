@@ -253,6 +253,13 @@ fn quire_only() -> Vec<(DesktopCommand, Vec<Protocol>)> {
                     Rect::new(0, 0, 160, 90),
                 )],
             },
+            shell.clone(),
+        ),
+        (
+            DesktopCommand::SetNewSpaceTarget {
+                output: OutputName::new("DP-1"),
+                rect: Some(Rect::new(0, 0, 160, 90)),
+            },
             shell,
         ),
     ]
@@ -361,5 +368,5 @@ fn every_command_has_a_distinct_kind_and_needs_something() {
         );
         kinds.push(command.kind());
     }
-    assert_eq!(kinds.len(), 43);
+    assert_eq!(kinds.len(), 44);
 }

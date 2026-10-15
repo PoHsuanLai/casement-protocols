@@ -15,7 +15,7 @@ use casement_protocols::vocab::{
     WindowStateKind, WireCode, Withdrawn,
 };
 use support::frozen::{ERRORS, EXTERNAL, INTERFACES};
-use support::{Interface, Protocol, protocols};
+use support::{Interface, Message, Protocol, protocols};
 
 /// A vocab enum's entries: (serde name, code), in code order.
 type Entries = fn() -> Vec<(String, u32)>;
@@ -205,9 +205,9 @@ fn every_interface_is_a_quire_v1_interface_at_its_version() {
             "{}",
             interface.name
         );
-        // Only the shell's global has grown a second version.
+        // Only the shell's global has grown past version 1.
         let version = match interface.name.as_str() {
-            "quire_shell_v1" => "2",
+            "quire_shell_v1" => "3",
             _ => "1",
         };
         assert_eq!(interface.version, version, "{}", interface.name);
@@ -215,10 +215,11 @@ fn every_interface_is_a_quire_v1_interface_at_its_version() {
 }
 
 #[test]
-fn the_shells_version_two_messages_are_appended_and_say_since_two() {
+fn the_shells_newer_messages_are_appended_in_version_order_and_say_since() {
     let protocols = protocols();
     let shell = interface(&protocols, "quire_shell_v1");
-    for (kind, messages, added) in [
+    // (kind, messages, the version 2 names, the version 3 names), each in wire order.
+    for (kind, messages, two, three) in [
         (
             "requests",
             &shell.requests,
@@ -227,19 +228,29 @@ fn the_shells_version_two_messages_are_appended_and_say_since_two() {
                 "space_target_clear",
                 "space_target",
             ][..],
+            &["space_target_new"][..],
         ),
         (
             "events",
             &shell.events,
             &["overview_output", "drop_target"][..],
+            &["drop_target_new"][..],
         ),
     ] {
-        let (old, new) = messages.split_at(messages.len() - added.len());
-        let names: Vec<&str> = new.iter().map(|m| m.name.as_str()).collect();
-        assert_eq!(names, added, "{kind}: the newest messages come last");
+        let split = messages.len() - two.len() - three.len();
+        let (old, rest) = messages.split_at(split);
+        let (v2, v3) = rest.split_at(two.len());
+        let names =
+            |list: &[Message]| -> Vec<String> { list.iter().map(|m| m.name.clone()).collect() };
+        assert_eq!(names(v2), two, "{kind}: version 2 comes after version 1");
+        assert_eq!(names(v3), three, "{kind}: version 3 comes last");
         assert!(
-            new.iter().all(|m| m.since.as_deref() == Some("2")),
+            v2.iter().all(|m| m.since.as_deref() == Some("2")),
             "{kind}: a version 2 message says since=2"
+        );
+        assert!(
+            v3.iter().all(|m| m.since.as_deref() == Some("3")),
+            "{kind}: a version 3 message says since=3"
         );
         assert!(
             old.iter().all(|m| m.since.is_none()),
