@@ -4,14 +4,14 @@ use wayland_client::protocol::wl_surface::WlSurface;
 use wayland_client::{Connection, Dispatch, QueueHandle};
 
 use casement_protocols::client::quire_shell_v1::quire_shell_v1::{self, QuireShellV1};
-use casement_protocols::vocab::MacMods;
+use casement_protocols::vocab::{AskId, MacMods};
 
 use super::wire::{Wire, raw, vocab};
 use crate::event::DesktopEvent;
 use crate::geometry::{Point, Rect};
 use crate::keys::SurfaceKey;
 use crate::names::{AppId, SpaceId, ToplevelIdentifier};
-use crate::quire::{QuireEvent, ShellEvent};
+use crate::quire::{PermissionAsk, QuireEvent, ShellEvent};
 
 /// The key the caller registered `surface` under, if it did.
 fn key_of(wire: &Wire, surface: &WlSurface) -> Option<SurfaceKey> {
@@ -123,6 +123,20 @@ fn translate(wire: &Wire, event: quire_shell_v1::Event) -> Option<ShellEvent> {
             window: ToplevelIdentifier::new(toplevel),
             outcome: vocab(outcome)?,
         },
+        Event::PermissionAsk {
+            ask,
+            power,
+            subject_kind,
+            subject,
+            memory,
+        } => ShellEvent::PermissionAsk(PermissionAsk::new(
+            AskId::new(ask),
+            vocab(power)?,
+            vocab(subject_kind)?,
+            subject,
+            vocab(memory)?,
+        )),
+        Event::PermissionWithdraw { ask } => ShellEvent::PermissionWithdraw(AskId::new(ask)),
         Event::Killed => ShellEvent::Killed,
         _ => return None,
     })

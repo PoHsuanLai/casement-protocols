@@ -4,14 +4,14 @@
 use std::collections::BTreeSet;
 
 use casement_protocols::vocab::{
-    ActorKind, AppLifeKind, AppVisibility, Attention, Corner, DragOutcome, Emphasis, GlowCode,
-    KeyGesture, LeaseState, MacMods, MenuSourceKind, Modality, OverviewMode, OverviewState,
-    PlacementMark, ProofKind, Responsiveness, ScreenEdge, SensitivityLevel, Shown, SpaceActivity,
-    SpaceKind, SplitSide, WindowRole, WindowStateKind,
+    ActorKind, AppLifeKind, AppVisibility, AskId, Attention, Corner, DragOutcome, Emphasis,
+    GlowCode, KeyGesture, LeaseState, MacMods, Memory, MenuSourceKind, Modality, OverviewMode,
+    OverviewState, PlacementMark, Power, ProofKind, Responsiveness, ScreenEdge, SensitivityLevel,
+    Shown, SpaceActivity, SpaceKind, SplitSide, SubjectKind, WindowRole, WindowStateKind,
 };
 use desktop_client::quire::{
-    AppChange, AppEvent, Lease, Linker, MenuSource, QuireEvent, ShellEvent, SpaceChange,
-    SpaceEvent, SpacePlace, WindowChange, WindowEvent, WindowGeometry, WindowObject,
+    AppChange, AppEvent, Lease, Linker, MenuSource, PermissionAsk, QuireEvent, ShellEvent,
+    SpaceChange, SpaceEvent, SpacePlace, WindowChange, WindowEvent, WindowGeometry, WindowObject,
 };
 use desktop_client::toplevel::{Announcement, ToplevelChange, ToplevelEvent, ToplevelFlag};
 use desktop_client::workspace::{WorkspaceChange, WorkspaceEvent, WorkspaceFlag};
@@ -826,6 +826,14 @@ fn moments_change_no_state() {
             at: desktop_client::Point::new(40, 52),
             enabled: 0b11,
         },
+        ShellEvent::PermissionAsk(PermissionAsk::new(
+            AskId::new(1),
+            Power::Screen,
+            SubjectKind::Program,
+            "/usr/bin/grim",
+            Memory::Remembered,
+        )),
+        ShellEvent::PermissionWithdraw(AskId::new(1)),
         ShellEvent::Killed,
     ];
     for moment in moments {

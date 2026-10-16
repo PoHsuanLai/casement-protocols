@@ -4,13 +4,13 @@
 use std::fmt::Debug;
 
 use casement_protocols::vocab::{
-    ActorKind, AppLifeKind, AppVisibility, Assign, Attention, CodeError, Corner, DragOutcome,
-    Edited, Emphasis, FrameMode, GlowCode, KeyGesture, LeaseState, MacMods, MaskReason,
-    MenuSourceKind, Modality, OverviewMode, OverviewState, PlaceKind, PlaceTarget, PlacementMark,
-    PressEdge, ProofKind, ReceiptCounts, ReceiptDigest, ReceiptItem, Responsiveness, RevokeReason,
-    RunMode, ScreenEdge, SensitivityLevel, ShellRole, Shown, SpaceActivity, SpaceKind, SplitSide,
-    Suspend, TileZone, Toggle, TrustedAnchor, TrustedKind, WindowEntry, WindowRole,
-    WindowStateKind, WireCode, Withdrawn,
+    ActorKind, Answer, AppLifeKind, AppVisibility, Assign, Attention, CodeError, Corner,
+    DragOutcome, Edited, Emphasis, FrameMode, GlowCode, KeyGesture, LeaseState, MacMods,
+    MaskReason, Memory, MenuSourceKind, Modality, OverviewMode, OverviewState, PlaceKind,
+    PlaceTarget, PlacementMark, Power, PressEdge, ProofKind, ReceiptCounts, ReceiptDigest,
+    ReceiptItem, Responsiveness, RevokeReason, RunMode, ScreenEdge, SensitivityLevel, ShellRole,
+    Shown, SpaceActivity, SpaceKind, SplitSide, SubjectKind, Suspend, TileZone, Toggle,
+    TrustedAnchor, TrustedKind, WindowEntry, WindowRole, WindowStateKind, WireCode, Withdrawn,
 };
 use serde::Serialize;
 use serde::de::DeserializeOwned;
@@ -72,6 +72,10 @@ fn every_vocab_enum_round_trips() {
     every_value_round_trips::<WindowEntry>("WindowEntry");
     every_value_round_trips::<SplitSide>("SplitSide");
     every_value_round_trips::<DragOutcome>("DragOutcome");
+    every_value_round_trips::<Power>("Power");
+    every_value_round_trips::<SubjectKind>("SubjectKind");
+    every_value_round_trips::<Memory>("Memory");
+    every_value_round_trips::<Answer>("Answer");
     every_value_round_trips::<OverviewMode>("OverviewMode");
     every_value_round_trips::<OverviewState>("OverviewState");
     every_value_round_trips::<RunMode>("RunMode");
@@ -97,6 +101,9 @@ fn consumers_stored_forms_are_unchanged() {
     );
     assert_eq!(round_trips(&ActorKind::ThirdParty), r#""third_party""#);
     assert_eq!(round_trips(&MaskReason::A11ySecret), r#""a11y_secret""#);
+    // casement's privacy book stores the power and the answer in these forms.
+    assert_eq!(round_trips(&Power::TypingHelp), r#""typing_help""#);
+    assert_eq!(round_trips(&Answer::Deny), r#""deny""#);
 }
 
 #[test]

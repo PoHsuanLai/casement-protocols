@@ -257,3 +257,26 @@ stays at version 1. Everything older is untouched; the new event comes last and 
   generated `client::quire_window_v1::quire_window_manager_v1::Event::Quit`, binding the global at `1..=2`.
 - Tests: the frozen table (`quit()`), interface versions (manager 2), `the_window_managers_quit_event_comes_last_and_says_since_2`.
   Land this first; casement's `Event::QuitListener` and `Effect::SendQuit` depend on it.
+
+## wave-2026-10-16/pa2-cproto
+
+`quire_shell_v1` is now **version 5** (production-audit lane `pa2-cproto`, wave-2 design section 3.4). Written without a
+compiler. Everything older is untouched; the new messages come last and say `since="5"`.
+
+- Enums (all new, all on `quire_shell_v1`, vocab in `src/vocab/privilege.rs`): `power` (screen 0, keys 1, typing_help 2,
+  clipboard 3, lock 4, displays 5, windows 6; `Power::title()` and `Power::blurb()` are the one home of the words a person
+  reads), `subject_kind` (program 0, sandboxed_app 1, unrecognised 2), `memory` (remembered 0, this_time_only 1), `answer`
+  (allow 0, deny 1, dismissed 2). `AskId(u32)` is the ask's id.
+- Event `permission_ask(ask, power, subject_kind, subject, memory)`, event `permission_withdraw(ask)`, request
+  `permission_answer(ask, answer)`. The XML states replay (every open ask is sent again, same ids, on bind) and denial.
+- `desktop-client`: `ShellEvent::{PermissionAsk, PermissionWithdraw}` (moments), `DesktopCommand::AnswerPermission`, the shell
+  is bound at `1..=5`.
+- Tests: the version-ordered message test now has a version 5 column, `the_consent_enums_are_used_only_by_version_5_messages`,
+  the frozen table, interface version 5, vocab codes (both sides) and round trips for the four enums, `tests/it/privilege.rs`
+  (wording has no developer words, section titles, `AskId`), desktop-client kinds (45) and the moment test.
+
+| Item | Closes when |
+| --- | --- |
+| The design says a shell that answers faster than the sheet's disarm delay is a protocol error for that connection. Not in the wire: no delay is fixed anywhere yet, and a protocol error kills the shell's connection | sill's sheet has a stated disarm delay; a later version adds an `answered_too_soon` error entry (`since`) or casement treats a too-early answer as `dismissed` |
+| `quire_desktop_app_v1.identity` gaining a `subject` string (design 3.2, for QUIRE-12's menu-owner comparison) | the sill and quire lanes need it; it is a version 2 of `quire_desktop_app_v1` and the manager, so it is its own change |
+| `desktop-client` keeps no state for asks (`ShellEvent` moments): an answered ask is not echoed back by the compositor | sill's sheet queue proves it wants a `Shell::open_asks()` view, which needs casement to send `permission_withdraw` after an answer too |

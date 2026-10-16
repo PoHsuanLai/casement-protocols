@@ -33,7 +33,7 @@ docket-core, prov) take default features; Wayland clients take `client`; casemen
 | File | Interfaces | Advertised on | Server | Clients |
 | --- | --- | --- | --- | --- |
 | `protocols/quire-desktop-v1.xml` | `quire_desktop_manager_v1`, `quire_desktop_app_v1`, `quire_desktop_window_v1`, `quire_desktop_space_v1` | Shell and Agent connections (management requests are `not_permitted` on Agent) | casement | sill (full), cuad (read-only) |
-| `protocols/quire-shell-v1.xml` | `quire_shell_v1` | Shell connections | casement | sill through shell-host |
+| `protocols/quire-shell-v1.xml` | `quire_shell_v1` (version 5: `permission_ask`, `permission_withdraw`, `permission_answer`, the consent question) | Shell connections | casement | sill through shell-host |
 | `protocols/quire-window-v1.xml` | `quire_window_manager_v1` (version 2: `quit`, the person asked the app to quit), `quire_window_v1` | every connection | casement | shell-host, ds-blitz, any app |
 | `protocols/quire-sensitive-v1.xml` | `quire_sensitive_manager_v1`, `quire_sensitive_surface_v1` | every connection | casement | shell-host, ds-blitz, any app |
 | `protocols/quire-agent-v1.xml` | `quire_agent_manager_v1`, `quire_agent_lease_v1` | Agent connections | casement | cuad |
@@ -55,7 +55,7 @@ wayland-scanner turns that into the owning module's type, so one concept has one
 | `quire_desktop_app_v1` | `proof_kind`, `app_life_kind`, `app_visibility`, `menu_source_kind`, `attention` |
 | `quire_desktop_window_v1` | `modality`, `window_state_kind`, `place_kind`, `responsiveness`, `lease_state`, `toggle`, `assign` |
 | `quire_desktop_space_v1` | `space_kind`, `space_activity` |
-| `quire_shell_v1` | `shell_role`, `mac_mods` (bitfield), `key_gesture`, `overview_mode`, `overview_state`, `corner`, `screen_edge`, `shown` |
+| `quire_shell_v1` | `shell_role`, `mac_mods` (bitfield), `key_gesture`, `overview_mode`, `overview_state`, `corner`, `screen_edge`, `shown`, `window_entry`, `split_side`, `drag_outcome`, `power`, `subject_kind`, `memory`, `answer` |
 | `quire_trusted_manager_v1`, `quire_trusted_surface_v1` | `trusted_kind`, `trusted_anchor`; `withdrawn` |
 
 The window, sensitive, agent and trusted-surface protocols name no other protocol of ours; the
@@ -76,7 +76,8 @@ desktop protocol names window, sensitive and agent enums; the shell protocol nam
 
 Vocab files: `window.rs` (window and placement enums), `app.rs`, `space.rs`, `shell.rs`,
 `mac_mods.rs`, `agent.rs` (lease enums, `LeaseState`, `PressEdge`), `sensitive.rs`,
-`trusted.rs`, `actor.rs`, `receipt.rs`. A vocab enum whose concept carries data in
+`trusted.rs`, `actor.rs`, `receipt.rs`, `privilege.rs` (the seven `Power`s with the words a
+person reads for each, `SubjectKind`, `Memory`, `Answer`, `AskId`). A vocab enum whose concept carries data in
 casement-core is named `…Kind` (`WindowStateKind`, `SpaceKind`, `AppLifeKind`).
 
 ## 4. The canonical trait
@@ -122,7 +123,7 @@ reads the same as the protocol.
 
 | File | Proves |
 | --- | --- |
-| `tests/it/xml_introspection.rs` | every file parses and is named after itself; every interface is `quire_*_v1` at version 1 (the shell's global at 4 and the window manager at 2, their newer messages last and saying `since=`); every request and event with its arguments, in opcode order, as frozen; error enums; codes dense from 0 (bitfields: single bits); every vocab enum has its XML enum's names and codes and every XML enum has a vocab type; cross-references resolve; the licence notice; `quire-agent-v1.xml`'s pinned bytes; with both features, the generated interfaces' names, versions and messages |
+| `tests/it/xml_introspection.rs` | every file parses and is named after itself; every interface is `quire_*_v1` at version 1 (the shell's global at 5 and the window manager at 2, their newer messages last and saying `since=`); every request and event with its arguments, in opcode order, as frozen; error enums; codes dense from 0 (bitfields: single bits); every vocab enum has its XML enum's names and codes and every XML enum has a vocab type; cross-references resolve; the licence notice; `quire-agent-v1.xml`'s pinned bytes; with both features, the generated interfaces' names, versions and messages |
 | `tests/it/vocab_codes.rs` | (features `client,server`) every vocab enum accepts exactly the codes the generated enum accepts, with the same variant names, on both sides; `MacMods` bits |
 | `tests/it/round_trip.rs` | every vocab value round-trips through serde and its code; pinned JSON for stored forms |
 | `tests/it/receipt.rs` | receipt counts (table) and a pinned digest |
@@ -149,7 +150,7 @@ holds the frozen interface as tables (every message with its arguments, every er
   wayland-scanner's generated code.
 - **Protocol evolution:** until the user declares the protocols released, a v1 XML changes in
   place, with the server and every client updated in the same change (one `~/desktop` manifest
-  bump); no `since=` until then, except where a global has already grown: `quire_shell_v1` (version 4)
+  bump); no `since=` until then, except where a global has already grown: `quire_shell_v1` (version 5)
   and `quire_window_manager_v1` (version 2: the `quit` event, sent only to a client that bound
   version 2, so a version 1 client keeps working).
 - **`quire-agent-v1.xml` came from cua byte for byte**; `tests/it/xml_introspection.rs` pins its
@@ -220,3 +221,35 @@ passes the `Connection`); a proxy never enters the state, a key does
 Consumers: sill maps `DesktopState` into its `DesktopView` (app grouping, most-recently-used
 order and Spaces are sill's); cua's toplevel client moves onto it later; `casementctl shot`
 and the testclient use `DesktopCommand::CaptureOutput` and `Frame::to_rgba8`.
+
+## 9. Consent: `quire_shell_v1` version 5
+
+casement asks the shell, over this global, whether a program may use one of seven `Power`s; the
+shell puts the question to the person and answers. The design (who is trusted, the book, the
+words) is in the production-audit wave-2 design, section 3; this repo owns the wire.
+
+| Message | Direction | Meaning |
+| --- | --- | --- |
+| `permission_ask(ask, power, subject_kind, subject, memory)` | casement to shell | one open question; `ask` is unique in a compositor run and never reused; `subject` is a path or an app id, at most 4096 bytes |
+| `permission_withdraw(ask)` | casement to shell | the answer is no longer needed (time ran out, screen locked, settled elsewhere); nothing is remembered |
+| `permission_answer(ask, answer)` | shell to casement | `allow`, `deny` or `dismissed`; the first answer to an open ask settles it, any other is ignored |
+
+Rules the XML states and the consumers rely on:
+
+- **Version gate.** All three say `since="5"`; a shell that bound an older version never sees an
+  ask, and casement refuses the program unremembered (fail closed).
+- **Allow Once is not an answer.** casement decides what an answer is kept as (`memory`); the
+  shell answers `allow` to an ask whose `memory` is `this_time_only` and that is Allow Once.
+- **Replay.** An ask stays open until answered or withdrawn, with or without a shell. A shell that
+  binds sees every open ask again, in first-sent order, with the same ids, right after the bind
+  events. A shell keys its queue by `ask`.
+- **Denial.** `deny` and `dismissed` both refuse the power, with the refusal of the protocol the
+  program used; only `deny` on a `remembered` ask is kept. No shell for the grace period, a locked
+  screen, too many open asks and an unanswered ask all refuse unremembered.
+- **One at a time.** casement keeps at most one ask open toward the shell; a shell may still
+  queue.
+
+`desktop-client`: `ShellEvent::{PermissionAsk(PermissionAsk), PermissionWithdraw(AskId)}` (moments,
+no state: the shell keeps its queue by id, because an answered ask is not echoed back) and
+`DesktopCommand::AnswerPermission { ask, answer }` (45 command kinds; the shell is bound at
+`1..=5`; the command is refused with `NotBound` on a compositor that serves less than version 5).

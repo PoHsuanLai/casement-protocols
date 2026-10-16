@@ -39,10 +39,15 @@
     a window on a Space in Mission Control; every message it adds says `since="2"`. Version 3 adds, again
     after everything older, a "new desktop" drop target: dropping a window on it makes a Space with the
     window; every message it adds says `since="3"`. Version 4 adds, again after everything older, the start
-    and the end of a window drag in Mission Control; every message it adds says `since="4"`.
+    and the end of a window drag in Mission Control; every message it adds says `since="4"`. Version 5
+    adds, again after everything older, the compositor asking the shell to ask the person whether a program
+    may use one of seven powers (see the screen, type and click, help with typing, read the clipboard, lock
+    the screen, change displays, manage windows); every message it adds says `since="5"`. A shell that bound
+    an older version never receives the version 5 events and has nothing to answer; a program that needs
+    asking is then refused, without being remembered.
   </description>
 
-  <interface name="quire_shell_v1" version="4">
+  <interface name="quire_shell_v1" version="5">
     <description summary="the shell's global">
       Advertised on Shell connections only.
 
@@ -167,6 +172,47 @@
       <entry name="dropped_on_space" value="0" summary="dropped on a Space of the Spaces bar"/>
       <entry name="dropped_on_new" value="1" summary="dropped on the new-desktop target"/>
       <entry name="cancelled" value="2" summary="dropped on nothing; the window flew back"/>
+    </enum>
+
+    <enum name="power">
+      <description summary="one thing a program needs the person's consent for">
+        The unit of consent: the word the person decides on. A program the person allows keeps the power
+        until the person takes it back in Settings. These are the only seven; an eighth is a new version
+        of this protocol. Used by `permission_ask` (version 5).
+      </description>
+      <entry name="screen" value="0" summary="see what is on the screen, including other apps' windows"/>
+      <entry name="keys" value="1" summary="press keys and buttons as if the person did"/>
+      <entry name="typing_help" value="2" summary="see what is typed, to offer suggestions and other languages"/>
+      <entry name="clipboard" value="3" summary="read and replace what the person copies"/>
+      <entry name="lock" value="4" summary="cover the screen and ask the person to sign in"/>
+      <entry name="displays" value="5" summary="turn screens off and change their size, position and colours"/>
+      <entry name="windows" value="6" summary="see the names of other apps' windows and move, raise or close them"/>
+    </enum>
+
+    <enum name="subject_kind">
+      <description summary="how well the compositor knows which program is asking">
+        Used by `permission_ask` (version 5).
+      </description>
+      <entry name="program" value="0" summary="a program whose image the system owns; the subject is its path"/>
+      <entry name="sandboxed_app" value="1" summary="a sandboxed app; the subject is its app id"/>
+      <entry name="unrecognised" value="2" summary="a program the compositor cannot vouch for; the subject is its path, or empty when none is known"/>
+    </enum>
+
+    <enum name="memory">
+      <description summary="what an answer will be kept as">
+        Used by `permission_ask` (version 5).
+      </description>
+      <entry name="remembered" value="0" summary="the answer is kept; the program is not asked again"/>
+      <entry name="this_time_only" value="1" summary="nothing is kept; an allow lasts while the program stays connected"/>
+    </enum>
+
+    <enum name="answer">
+      <description summary="what the person said">
+        Used by `permission_answer` (version 5).
+      </description>
+      <entry name="allow" value="0" summary="Allow, or Allow Once when the ask's memory is this_time_only"/>
+      <entry name="deny" value="1" summary="Don't Allow"/>
+      <entry name="dismissed" value="2" summary="the question was closed without an answer (Escape, or the sheet went away)"/>
     </enum>
 
     <request name="set_role">
@@ -472,6 +518,31 @@
       <arg name="height" type="uint"/>
     </request>
 
+    <request name="permission_answer" since="5">
+      <description summary="the person answered a question from permission_ask">
+        `ask` is the id from `permission_ask`. The first answer to an ask settles it; an answer for
+        an ask that is unknown, already answered or withdrawn is ignored, so a late answer does no
+        harm.
+
+        `allow` lets the program use the power: what it was waiting for goes ahead, and the
+        requests the compositor held meanwhile are replayed in order (up to a fixed limit; the
+        compositor says in its own documentation which are held). When `memory` was `remembered`
+        the allow is kept; when it was `this_time_only` it lasts while the program stays connected
+        and is never written down (Allow Once).
+
+        `deny` and `dismissed` both refuse the power, and the program gets the refusal its own
+        protocol has (a capture stops, a clipboard source is finished, a lock is refused, a change to
+        the displays fails, a window list ends). They differ in what is kept: `deny` is kept when
+        `memory` was `remembered`, and the program is not asked again until the person changes it in
+        Settings; `dismissed` is never kept and the program may be asked again after a while.
+
+        The shell answers each ask it showed once, and answers `dismissed` when its sheet goes away
+        without an answer.
+      </description>
+      <arg name="ask" type="uint" summary="the ask's id"/>
+      <arg name="answer" type="uint" enum="answer"/>
+    </request>
+
     <event name="overview_output" since="2">
       <description summary="Mission Control is open or closed on an output">
         Sent for every output, just before each `overview_state`, and for an output that is
@@ -527,6 +598,54 @@
       <arg name="output" type="object" interface="wl_output"/>
       <arg name="toplevel" type="string" summary="ext-foreign-toplevel identifier"/>
       <arg name="outcome" type="uint" enum="drag_outcome"/>
+    </event>
+
+    <event name="permission_ask" since="5">
+      <description summary="ask the person whether a program may use a power">
+        A program used `power` for the first time and the compositor does not already know the
+        answer. The shell puts a question on screen that names the program (a desktop entry or app id
+        found from `subject`, else the file name), says what the power lets it do, and offers Allow and
+        Don't Allow. When `memory` is `this_time_only` the first button is Allow Once, and the sheet
+        says the program cannot be recognised so it will be asked again. Escape, or the sheet going
+        away, answers `dismissed`. The words are the shell's.
+
+        `subject` is at most 4096 bytes. The same program using the same power again while an ask is
+        open joins that ask. The compositor keeps at most one ask open toward the shell and sends the
+        next one after the answer or `permission_withdraw`; a shell should still be ready to show
+        several, one after another.
+
+        Replay: an ask stays open until it is answered or withdrawn, whether or not a shell is
+        connected. When a shell binds this global (it starts after the compositor, or it restarted),
+        the compositor sends every open ask again, in the order they were first sent and with the
+        same `ask` ids, straight after the other events of the bind; a shell that restarted while its
+        sheet was up sees the question again. An ask also stays open after the program that raised it
+        has gone, so that the answer counts the next time the program runs; it is withdrawn when its
+        time runs out.
+
+        Denial: with no shell bound, the compositor waits for a short time after it started, then
+        refuses the program without remembering anything. It also refuses without remembering, and
+        sends no ask, while the screen is locked and when too many asks are already waiting. An ask
+        nobody answers in time is withdrawn and the program is refused, not remembered. A shell that
+        bound a version older than 5 never sees any of this, and the program is refused the same way.
+
+        `ask` is unique among the asks of one compositor run and is not reused.
+      </description>
+      <arg name="ask" type="uint" summary="the ask's id; the answer and the withdrawal name it"/>
+      <arg name="power" type="uint" enum="power"/>
+      <arg name="subject_kind" type="uint" enum="subject_kind"/>
+      <arg name="subject" type="string" summary="the program's path or the sandboxed app's id, at most 4096 bytes"/>
+      <arg name="memory" type="uint" enum="memory"/>
+    </event>
+
+    <event name="permission_withdraw" since="5">
+      <description summary="the question is no longer needed">
+        The compositor no longer needs the answer to `ask`: it timed out, the screen was locked, the
+        person already settled it in Settings, the administrator's rule decided it, or the program
+        that raised it is gone and its time ran out. The shell takes the sheet down without
+        answering, and a late `permission_answer` for it is ignored. Nothing is remembered because of a
+        withdrawal. An unknown `ask` is ignored.
+      </description>
+      <arg name="ask" type="uint" summary="the ask's id"/>
     </event>
   </interface>
 </protocol>

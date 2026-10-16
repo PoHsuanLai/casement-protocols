@@ -5,13 +5,14 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
+use super::PermissionAsk;
 use crate::geometry::Point;
 use crate::geometry::Rect;
 use crate::keys::SurfaceKey;
 use crate::names::{AppId, OutputName, SpaceId, ToplevelIdentifier};
 use casement_protocols::vocab::{
-    Corner, DragOutcome, KeyGesture, MacMods, OverviewMode, OverviewState, ScreenEdge, Shown,
-    SplitSide,
+    AskId, Corner, DragOutcome, KeyGesture, MacMods, OverviewMode, OverviewState, ScreenEdge,
+    Shown, SplitSide,
 };
 
 /// One event of `quire_shell_v1`.
@@ -157,6 +158,13 @@ pub enum ShellEvent {
         /// Where it went.
         outcome: DragOutcome,
     },
+    /// A program wants a power and the compositor asks the person (version 5; a moment). The
+    /// shell shows a sheet and answers with `DesktopCommand::AnswerPermission`. A shell that
+    /// binds while asks are open gets each again with the same id.
+    PermissionAsk(PermissionAsk),
+    /// The compositor no longer needs the answer to this ask (version 5; a moment): take its
+    /// sheet down without answering.
+    PermissionWithdraw(AskId),
     /// The kill chord was pressed; every agent lease has ended (a moment).
     Killed,
 }
@@ -466,6 +474,8 @@ pub(super) fn reduce_shell(mut shell: Shell, event: ShellEvent) -> Shell {
         | ShellEvent::Bell(_)
         | ShellEvent::Reopen(_)
         | ShellEvent::WindowMenu { .. }
+        | ShellEvent::PermissionAsk(_)
+        | ShellEvent::PermissionWithdraw(_)
         | ShellEvent::Killed => {}
     }
     shell

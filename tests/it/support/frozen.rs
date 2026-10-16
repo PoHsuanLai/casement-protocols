@@ -119,6 +119,7 @@ pub const INTERFACES: &[(&str, &str, &[&str], &[&str])] = &[
             "space_target_clear(output: wl_output)",
             "space_target(output: wl_output, space_id: string, x: int, y: int, width: uint, height: uint)",
             "space_target_new(output: wl_output, x: int, y: int, width: uint, height: uint)",
+            "permission_answer(ask: uint, answer: uint<answer>)",
         ],
         &[
             "modifiers(surface: wl_surface, mods: uint<mac_mods>)",
@@ -146,6 +147,8 @@ pub const INTERFACES: &[(&str, &str, &[&str], &[&str])] = &[
             "drop_target_new(output: wl_output, over: uint<shown>)",
             "window_drag_begin(output: wl_output, toplevel: string)",
             "window_drag_end(output: wl_output, toplevel: string, outcome: uint<drag_outcome>)",
+            "permission_ask(ask: uint, power: uint<power>, subject_kind: uint<subject_kind>, subject: string, memory: uint<memory>)",
+            "permission_withdraw(ask: uint)",
         ],
     ),
     (

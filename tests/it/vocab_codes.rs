@@ -73,6 +73,10 @@ macro_rules! check_side {
         same_codes::<vocab::WindowEntry, shell::WindowEntry>();
         same_codes::<vocab::SplitSide, shell::SplitSide>();
         same_codes::<vocab::DragOutcome, shell::DragOutcome>();
+        same_codes::<vocab::Power, shell::Power>();
+        same_codes::<vocab::SubjectKind, shell::SubjectKind>();
+        same_codes::<vocab::Memory, shell::Memory>();
+        same_codes::<vocab::Answer, shell::Answer>();
         same_codes::<vocab::WindowRole, quire_window::WindowRole>();
         same_codes::<vocab::TileZone, quire_window::TileZone>();
         same_codes::<vocab::PlaceTarget, quire_window::PlaceTarget>();

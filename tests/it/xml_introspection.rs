@@ -7,12 +7,12 @@ use crate::support;
 use std::collections::BTreeSet;
 
 use casement_protocols::vocab::{
-    ActorKind, AppLifeKind, AppVisibility, Assign, Attention, Corner, DragOutcome, Edited,
-    Emphasis, FrameMode, GlowCode, KeyGesture, LeaseState, MacMods, MaskReason, MenuSourceKind,
-    Modality, OverviewMode, OverviewState, PlaceKind, PlaceTarget, PlacementMark, ProofKind,
-    Responsiveness, RevokeReason, RunMode, ScreenEdge, SensitivityLevel, ShellRole, Shown,
-    SpaceActivity, SpaceKind, SplitSide, Suspend, TileZone, Toggle, TrustedAnchor, TrustedKind,
-    WindowEntry, WindowRole, WindowStateKind, WireCode, Withdrawn,
+    ActorKind, Answer, AppLifeKind, AppVisibility, Assign, Attention, Corner, DragOutcome, Edited,
+    Emphasis, FrameMode, GlowCode, KeyGesture, LeaseState, MacMods, MaskReason, Memory,
+    MenuSourceKind, Modality, OverviewMode, OverviewState, PlaceKind, PlaceTarget, PlacementMark,
+    Power, ProofKind, Responsiveness, RevokeReason, RunMode, ScreenEdge, SensitivityLevel,
+    ShellRole, Shown, SpaceActivity, SpaceKind, SplitSide, SubjectKind, Suspend, TileZone, Toggle,
+    TrustedAnchor, TrustedKind, WindowEntry, WindowRole, WindowStateKind, WireCode, Withdrawn,
 };
 use support::frozen::{ERRORS, EXTERNAL, INTERFACES};
 use support::{Interface, Message, Protocol, protocols};
@@ -98,6 +98,10 @@ const VOCAB: &[(&str, &str, Entries)] = &[
     ("quire_shell_v1", "window_entry", entries::<WindowEntry>),
     ("quire_shell_v1", "split_side", entries::<SplitSide>),
     ("quire_shell_v1", "drag_outcome", entries::<DragOutcome>),
+    ("quire_shell_v1", "power", entries::<Power>),
+    ("quire_shell_v1", "subject_kind", entries::<SubjectKind>),
+    ("quire_shell_v1", "memory", entries::<Memory>),
+    ("quire_shell_v1", "answer", entries::<Answer>),
     ("quire_window_v1", "window_role", entries::<WindowRole>),
     ("quire_window_v1", "tile_zone", entries::<TileZone>),
     ("quire_window_v1", "place_target", entries::<PlaceTarget>),
@@ -208,7 +212,7 @@ fn every_interface_is_a_quire_v1_interface_at_its_version() {
         );
         // Only the shell's global and the window manager have grown past version 1.
         let version = match interface.name.as_str() {
-            "quire_shell_v1" => "4",
+            "quire_shell_v1" => "5",
             "quire_window_manager_v1" => "2",
             _ => "1",
         };
@@ -220,51 +224,80 @@ fn every_interface_is_a_quire_v1_interface_at_its_version() {
 fn the_shells_newer_messages_are_appended_in_version_order_and_say_since() {
     let protocols = protocols();
     let shell = interface(&protocols, "quire_shell_v1");
-    // (kind, messages, the version 2, 3 and 4 names), each in wire order.
-    for (kind, messages, two, three, four) in [
+    let names = |list: &[Message]| -> Vec<String> { list.iter().map(|m| m.name.clone()).collect() };
+    // (kind, messages, the names added by version 2, 3, 4 and 5), each in wire order.
+    for (kind, messages, added) in [
         (
             "requests",
             &shell.requests,
-            &[
-                "get_space_capture_source",
-                "space_target_clear",
-                "space_target",
-            ][..],
-            &["space_target_new"][..],
-            &[] as &[&str],
+            [
+                &[
+                    "get_space_capture_source",
+                    "space_target_clear",
+                    "space_target",
+                ][..],
+                &["space_target_new"][..],
+                &[] as &[&str],
+                &["permission_answer"][..],
+            ],
         ),
         (
             "events",
             &shell.events,
-            &["overview_output", "drop_target"][..],
-            &["drop_target_new"][..],
-            &["window_drag_begin", "window_drag_end"][..],
+            [
+                &["overview_output", "drop_target"][..],
+                &["drop_target_new"][..],
+                &["window_drag_begin", "window_drag_end"][..],
+                &["permission_ask", "permission_withdraw"][..],
+            ],
         ),
     ] {
-        let split = messages.len() - two.len() - three.len() - four.len();
-        let (old, rest) = messages.split_at(split);
-        let (v2, rest) = rest.split_at(two.len());
-        let (v3, v4) = rest.split_at(three.len());
-        let names =
-            |list: &[Message]| -> Vec<String> { list.iter().map(|m| m.name.clone()).collect() };
-        assert_eq!(names(v2), two, "{kind}: version 2 comes after version 1");
-        assert_eq!(names(v3), three, "{kind}: version 3 comes after version 2");
-        assert_eq!(names(v4), four, "{kind}: version 4 comes last");
-        assert!(
-            v2.iter().all(|m| m.since.as_deref() == Some("2")),
-            "{kind}: a version 2 message says since=2"
-        );
-        assert!(
-            v3.iter().all(|m| m.since.as_deref() == Some("3")),
-            "{kind}: a version 3 message says since=3"
-        );
-        assert!(
-            v4.iter().all(|m| m.since.as_deref() == Some("4")),
-            "{kind}: a version 4 message says since=4"
-        );
+        let newer: usize = added.iter().map(|names| names.len()).sum();
+        let (old, mut rest) = messages.split_at(messages.len() - newer);
         assert!(
             old.iter().all(|m| m.since.is_none()),
             "{kind}: a version 1 message has no since"
+        );
+        for (version, want) in (2..).zip(added) {
+            let (these, after) = rest.split_at(want.len());
+            assert_eq!(
+                names(these),
+                want,
+                "{kind}: version {version} comes after version {}",
+                version - 1
+            );
+            let since = version.to_string();
+            assert!(
+                these
+                    .iter()
+                    .all(|m| m.since.as_deref() == Some(since.as_str())),
+                "{kind}: a version {version} message says since={version}"
+            );
+            rest = after;
+        }
+    }
+}
+
+#[test]
+fn the_consent_enums_are_used_only_by_version_5_messages() {
+    let protocols = protocols();
+    let shell = interface(&protocols, "quire_shell_v1");
+    for name in ["power", "subject_kind", "memory", "answer"] {
+        let users: Vec<(&str, Option<&str>)> = shell
+            .requests
+            .iter()
+            .chain(&shell.events)
+            .filter(|m| {
+                m.args
+                    .iter()
+                    .any(|a| a.enumeration.as_deref() == Some(name))
+            })
+            .map(|m| (m.name.as_str(), m.since.as_deref()))
+            .collect();
+        assert!(!users.is_empty(), "{name} is used by a message");
+        assert!(
+            users.iter().all(|(_, since)| *since == Some("5")),
+            "{name}: a version 4 client would see it through {users:?}"
         );
     }
 }

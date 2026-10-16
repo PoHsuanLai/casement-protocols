@@ -9,6 +9,7 @@ mod agent;
 mod app;
 mod code;
 mod mac_mods;
+mod privilege;
 mod receipt;
 mod sensitive;
 mod shell;
@@ -21,6 +22,7 @@ pub use agent::{GlowCode, LeaseState, MaskReason, PressEdge, RevokeReason, RunMo
 pub use app::{AppLifeKind, AppVisibility, Attention, MenuSourceKind, ProofKind};
 pub use code::{CodeError, WireCode};
 pub use mac_mods::MacMods;
+pub use privilege::{Answer, AskId, Memory, Power, SubjectKind};
 pub use receipt::{ReceiptCounts, ReceiptDigest, ReceiptItem, receipt_counts, receipt_digest};
 pub use sensitive::SensitivityLevel;
 pub use shell::{

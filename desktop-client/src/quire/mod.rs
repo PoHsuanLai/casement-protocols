@@ -14,6 +14,7 @@
 //! ext handle by identifier with [`Linker`], which is pure and tested.
 
 mod app;
+mod ask;
 mod event;
 mod link;
 mod project;
@@ -25,6 +26,7 @@ mod targets;
 mod window;
 
 pub use app::{AppChange, AppEvent, MenuSource, QuireApp};
+pub use ask::PermissionAsk;
 pub use event::QuireEvent;
 pub use link::{Linker, WindowObject};
 pub use set::{Active, Quire};

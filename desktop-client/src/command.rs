@@ -8,7 +8,7 @@ use crate::keys::{
 use crate::names::{OutputName, SpaceId, ToplevelIdentifier};
 use crate::output::OutputConfig;
 use casement_protocols::vocab::{
-    Assign, OverviewMode, PlaceTarget, ShellRole, Toggle, WindowEntry,
+    Answer, AskId, Assign, OverviewMode, PlaceTarget, ShellRole, Toggle, WindowEntry,
 };
 
 /// A request to the compositor. Targets are keys from [`crate::DesktopState`].
@@ -193,6 +193,16 @@ pub enum DesktopCommand {
         /// The rectangle in global logical pixels; `None` removes the target.
         rect: Option<Rect>,
     },
+    /// The person answered a question the compositor asked
+    /// ([`ShellEvent::PermissionAsk`](crate::quire::ShellEvent::PermissionAsk)); send
+    /// [`Answer::Dismissed`] when the sheet goes away without an answer (version 5). Quire arm,
+    /// shell role.
+    AnswerPermission {
+        /// The question, by the id the ask carried.
+        ask: AskId,
+        /// What the person said.
+        answer: Answer,
+    },
 }
 
 /// A place a dragged window can be dropped on a Space.
@@ -304,6 +314,8 @@ pub enum CommandKind {
     SetSpaceTargets,
     /// [`DesktopCommand::SetNewSpaceTarget`].
     SetNewSpaceTarget,
+    /// [`DesktopCommand::AnswerPermission`].
+    AnswerPermission,
 }
 
 impl DesktopCommand {
@@ -354,6 +366,7 @@ impl DesktopCommand {
             Self::DivideSplit { .. } => CommandKind::DivideSplit,
             Self::SetSpaceTargets { .. } => CommandKind::SetSpaceTargets,
             Self::SetNewSpaceTarget { .. } => CommandKind::SetNewSpaceTarget,
+            Self::AnswerPermission { .. } => CommandKind::AnswerPermission,
         }
     }
 }

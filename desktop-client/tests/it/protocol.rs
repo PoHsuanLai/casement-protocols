@@ -1,7 +1,7 @@
 //! Offered protocols and `supports`.
 
 use casement_protocols::vocab::{
-    Assign, OverviewMode, PlaceTarget, ShellRole, Toggle, WindowEntry,
+    Answer, AskId, Assign, OverviewMode, PlaceTarget, ShellRole, Toggle, WindowEntry,
 };
 use desktop_client::capture::CaptureRequest;
 use desktop_client::output::OutputConfig;
@@ -260,6 +260,13 @@ fn quire_only() -> Vec<(DesktopCommand, Vec<Protocol>)> {
                 output: OutputName::new("DP-1"),
                 rect: Some(Rect::new(0, 0, 160, 90)),
             },
+            shell.clone(),
+        ),
+        (
+            DesktopCommand::AnswerPermission {
+                ask: AskId::new(3),
+                answer: Answer::Allow,
+            },
             shell,
         ),
     ]
@@ -368,5 +375,5 @@ fn every_command_has_a_distinct_kind_and_needs_something() {
         );
         kinds.push(command.kind());
     }
-    assert_eq!(kinds.len(), 44);
+    assert_eq!(kinds.len(), 45);
 }
