@@ -32,7 +32,7 @@ docket-core, prov) take default features; Wayland clients take `client`; casemen
 
 | File | Interfaces | Advertised on | Server | Clients |
 | --- | --- | --- | --- | --- |
-| `protocols/quire-desktop-v1.xml` | `quire_desktop_manager_v1`, `quire_desktop_app_v1`, `quire_desktop_window_v1`, `quire_desktop_space_v1` | Shell and Agent connections (management requests are `not_permitted` on Agent) | casement | sill (full), cuad (read-only) |
+| `protocols/quire-desktop-v1.xml` | `quire_desktop_manager_v1` (version 2), `quire_desktop_app_v1` (version 2: `subject`, the program behind the app as the compositor established it), `quire_desktop_window_v1`, `quire_desktop_space_v1` | Shell and Agent connections (management requests are `not_permitted` on Agent) | casement | sill (full), cuad (read-only) |
 | `protocols/quire-shell-v1.xml` | `quire_shell_v1` (version 5: `permission_ask`, `permission_withdraw`, `permission_answer`, the consent question) | Shell connections | casement | sill through shell-host |
 | `protocols/quire-window-v1.xml` | `quire_window_manager_v1` (version 2: `quit`, the person asked the app to quit), `quire_window_v1` | every connection | casement | shell-host, ds-blitz, any app |
 | `protocols/quire-sensitive-v1.xml` | `quire_sensitive_manager_v1`, `quire_sensitive_surface_v1` | every connection, once served | not served yet | shell-host, ds-blitz, any app |
@@ -158,9 +158,12 @@ holds the frozen interface as tables (every message with its arguments, every er
   wayland-scanner's generated code.
 - **Protocol evolution:** until the user declares the protocols released, a v1 XML changes in
   place, with the server and every client updated in the same change (one `~/desktop` manifest
-  bump); no `since=` until then, except where a global has already grown: `quire_shell_v1` (version 5)
-  and `quire_window_manager_v1` (version 2: the `quit` event, sent only to a client that bound
-  version 2, so a version 1 client keeps working).
+  bump); no `since=` until then, except where a global has already grown: `quire_shell_v1` (version 5),
+  `quire_window_manager_v1` (version 2: the `quit` event, sent only to a client that bound
+  version 2, so a version 1 client keeps working) and `quire_desktop_manager_v1` with
+  `quire_desktop_app_v1` (version 2: the `subject` event, sent only to a client that bound the
+  manager at version 2; the app objects take the manager's version, which is why the manager
+  grows with the app).
 - **`quire-agent-v1.xml` came from cua byte for byte**; `tests/it/xml_introspection.rs` pins its
   bytes. A change to it updates the pin in the same commit.
 - **Clean room:** the XML is written from our own design notes; every interface here is ours

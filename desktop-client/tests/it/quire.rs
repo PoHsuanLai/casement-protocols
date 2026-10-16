@@ -16,8 +16,8 @@ use desktop_client::quire::{
 use desktop_client::toplevel::{Announcement, ToplevelChange, ToplevelEvent, ToplevelFlag};
 use desktop_client::workspace::{WorkspaceChange, WorkspaceEvent, WorkspaceFlag};
 use desktop_client::{
-    AppId, DesktopEvent, DesktopState, OutputName, Rect, SpaceId, SurfaceKey, ToplevelIdentifier,
-    reduce,
+    AppId, AppSubject, DesktopEvent, DesktopState, OutputName, Rect, SpaceId, SurfaceKey,
+    ToplevelIdentifier, reduce,
 };
 
 use crate::support::{ak, quire, run, sk, tk, top, top_change, window_change, wk, ws, ws_change};
@@ -75,6 +75,7 @@ fn an_app_is_listed_after_its_done_with_what_its_burst_said() {
                 claimed_id: "notes".into(),
             },
         ),
+        app_change(1, AppChange::Subject(AppSubject::new("/usr/bin/notes"))),
         app_change(1, AppChange::Life(AppLifeKind::Running)),
         app_change(1, AppChange::Visibility(AppVisibility::Hidden)),
         app_change(
@@ -97,6 +98,7 @@ fn an_app_is_listed_after_its_done_with_what_its_burst_said() {
     assert_eq!(a.id, Some(AppId::new("org.example.Notes")));
     assert_eq!(a.proof, Some(ProofKind::Scope));
     assert_eq!(a.claimed_id, "notes");
+    assert_eq!(a.subject, Some(AppSubject::new("/usr/bin/notes")));
     assert_eq!(a.life, AppLifeKind::Running);
     assert_eq!(a.visibility, AppVisibility::Hidden);
     assert_eq!(a.menu.kind, MenuSourceKind::DbusMenu);
@@ -122,6 +124,7 @@ fn a_new_app_starts_launching_with_nothing_asked() {
     assert_eq!(a.attention, Attention::None);
     assert_eq!(a.menu, MenuSource::none());
     assert_eq!(a.mru, None);
+    assert_eq!(a.subject, None, "no subject until the compositor says one");
 }
 
 #[test]

@@ -1,7 +1,7 @@
 //! Apps: `quire_desktop_app_v1`.
 
 use crate::keys::AppKey;
-use crate::names::AppId;
+use crate::names::{AppId, AppSubject};
 use crate::toplevel::Announcement;
 use casement_protocols::vocab::{AppLifeKind, AppVisibility, Attention, MenuSourceKind, ProofKind};
 
@@ -53,6 +53,9 @@ pub struct QuireApp {
     pub proof: Option<ProofKind>,
     /// What the app says about itself (may differ from `id` unless the proof is `Claimed`).
     pub claimed_id: String,
+    /// The program behind it as the compositor established it; `None` when it did not say
+    /// (a compositor older than protocol version 2, or a program it cannot name).
+    pub subject: Option<AppSubject>,
     /// Where it is in its life.
     pub life: AppLifeKind,
     /// Whether its windows are hidden.
@@ -75,6 +78,7 @@ impl QuireApp {
             id: None,
             proof: None,
             claimed_id: String::new(),
+            subject: None,
             life: AppLifeKind::Launching,
             visibility: AppVisibility::Shown,
             menu: MenuSource::none(),
@@ -98,6 +102,8 @@ pub enum AppChange {
         /// What the app claims.
         claimed_id: String,
     },
+    /// The program behind the app, as the compositor established it.
+    Subject(AppSubject),
     /// Its life changed.
     Life(AppLifeKind),
     /// It was hidden or shown.
@@ -141,6 +147,7 @@ pub(super) fn apply(app: &mut QuireApp, change: AppChange) {
             app.proof = Some(proof);
             app.claimed_id = claimed_id;
         }
+        AppChange::Subject(subject) => app.subject = Some(subject),
         AppChange::Life(life) => app.life = life,
         AppChange::Visibility(visibility) => app.visibility = visibility,
         AppChange::Menu(menu) => app.menu = menu,

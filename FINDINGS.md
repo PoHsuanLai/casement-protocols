@@ -278,7 +278,6 @@ compiler. Everything older is untouched; the new messages come last and say `sin
 | Item | Closes when |
 | --- | --- |
 | The design says a shell that answers faster than the sheet's disarm delay is a protocol error for that connection. Not in the wire: no delay is fixed anywhere yet, and a protocol error kills the shell's connection | sill's sheet has a stated disarm delay; a later version adds an `answered_too_soon` error entry (`since`) or casement treats a too-early answer as `dismissed` |
-| `quire_desktop_app_v1.identity` gaining a `subject` string (design 3.2, for QUIRE-12's menu-owner comparison) | the sill and quire lanes need it; it is a version 2 of `quire_desktop_app_v1` and the manager, so it is its own change |
 | `desktop-client` keeps no state for asks (`ShellEvent` moments): an answered ask is not echoed back by the compositor | sill's sheet queue proves it wants a `Shell::open_asks()` view, which needs casement to send `permission_withdraw` after an answer too |
 
 ### PORTAL-14 (same lane): unserved protocols say so
@@ -294,3 +293,23 @@ the XML disagree. `quire_sensitive_v1`'s description now says `capture_hidden` m
 | --- | --- |
 | The casement-side gate (every protocol here has a `GlobalKind` or an explicit "not served" row) is casement's lane `pa2-croot`; this repo only states the rows | casement's gate reads the table above or carries its own list |
 | When a server for one of the three lands, the same change turns its Server cell to `casement` and deletes the `Not served yet:` paragraph (the test enforces both), and the masking of every capture ships with `quire_sensitive_v1` | the server lands |
+
+### QUIRE-12 (lane pa2-cgate): `quire_desktop_app_v1.subject`
+
+The item "`quire_desktop_app_v1.identity` gaining a `subject` string" is done as a new event, not a changed one, so a version 1 client is
+untouched.
+
+- `quire-desktop-v1.xml`: `quire_desktop_app_v1` is version 2 and gains the event `subject(subject: string)`, `since="2"`, appended
+  after `closed` in opcode order (it is sent in the app's burst, after `identity`). The string is the program image path of a native
+  process, or the sandbox's app id; the description says it is a fact the compositor established, not a claim, and that no event
+  means no subject is known. `quire_desktop_manager_v1` is version 2 too, because an object a server announces is created at its
+  parent's version: only a client that bound the manager at 2 can receive `subject`. The window and Space objects are created at
+  their own version 1 by the compositor.
+- `desktop-client`: the Quire manager is bound at `1..=2`; `QuireApp::subject: Option<AppSubject>` (new newtype `AppSubject`),
+  `AppChange::Subject(AppSubject)`; `None` against a compositor older than 2 or for a program it cannot name.
+- Tests: the frozen table lists `subject`, the interface-version test lists both interfaces at 2, `the_desktop_apps_subject_event_comes_last_and_says_since_2`,
+  and the reducer tests read the subject into `QuireApp` (and `None` before any).
+
+| Item | Closes when |
+| --- | --- |
+| A sandboxed app that reaches the compositor through a security-context socket (`ConnectionRole::Sandboxed`) has no `ClientStanding` in casement's model, so it gets no `subject` yet; its `identity.proof` is already `security_context` | casement records the sandbox's app id for those connections |

@@ -44,6 +44,7 @@ pub const INTERFACES: &[(&str, &str, &[&str], &[&str])] = &[
             "mru(rank: uint)",
             "done()",
             "closed()",
+            "subject(subject: string)",
         ],
     ),
     (

@@ -210,10 +210,11 @@ fn every_interface_is_a_quire_v1_interface_at_its_version() {
             "{}",
             interface.name
         );
-        // Only the shell's global and the window manager have grown past version 1.
+        // Only the shell's global, the window manager and the desktop's manager and app (whose
+        // objects take the manager's version) have grown past version 1.
         let version = match interface.name.as_str() {
             "quire_shell_v1" => "5",
-            "quire_window_manager_v1" => "2",
+            "quire_window_manager_v1" | "quire_desktop_manager_v1" | "quire_desktop_app_v1" => "2",
             _ => "1",
         };
         assert_eq!(interface.version, version, "{}", interface.name);
@@ -300,6 +301,29 @@ fn the_consent_enums_are_used_only_by_version_5_messages() {
             "{name}: a version 4 client would see it through {users:?}"
         );
     }
+}
+
+#[test]
+fn the_desktop_apps_subject_event_comes_last_and_says_since_2() {
+    let protocols = protocols();
+    let app = interface(&protocols, "quire_desktop_app_v1");
+    let (old, newer) = app.events.split_at(app.events.len() - 1);
+    assert!(
+        old.iter().all(|m| m.since.is_none()),
+        "a version 1 event has no since"
+    );
+    assert_eq!(
+        newer.iter().map(|m| m.name.as_str()).collect::<Vec<_>>(),
+        ["subject"]
+    );
+    assert_eq!(newer[0].since.as_deref(), Some("2"));
+    assert!(
+        app.requests.iter().all(|m| m.since.is_none()),
+        "the requests are version 1"
+    );
+    // Objects take their parent's version, so the manager is at the app's version.
+    let manager = interface(&protocols, "quire_desktop_manager_v1");
+    assert_eq!(manager.version, app.version);
 }
 
 #[test]

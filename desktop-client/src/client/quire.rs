@@ -18,7 +18,7 @@ use super::wire::{Wire, number_of, vocab};
 use crate::event::DesktopEvent;
 use crate::geometry::Rect;
 use crate::keys::{AppKey, SpaceKey};
-use crate::names::{AppId, SpaceId, ToplevelIdentifier};
+use crate::names::{AppId, AppSubject, SpaceId, ToplevelIdentifier};
 use crate::quire::{
     AppChange, AppEvent, Lease, MenuSource, QuireEvent, SpaceChange, SpaceEvent, SpacePlace,
     WindowChange, WindowGeometry, WindowObject,
@@ -98,6 +98,7 @@ pub(super) fn on_app(
             proof: vocab(proof).unwrap_or(ProofKind::Claimed),
             claimed_id,
         }),
+        Event::Subject { subject } => Some(AppChange::Subject(AppSubject::new(subject))),
         Event::Life { state } => vocab(state).map(AppChange::Life),
         Event::Visibility { state } => vocab(state).map(AppChange::Visibility),
         Event::MenuSource {

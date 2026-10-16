@@ -44,10 +44,14 @@
     every client and the server updated together.
   </description>
 
-  <interface name="quire_desktop_manager_v1" version="1">
+  <interface name="quire_desktop_manager_v1" version="2">
     <description summary="the desktop model's global">
       On bind the compositor sends an `app`, `window` and `space` event for each existing
       object, each followed by its state burst, then `active` and `done`.
+
+      Version 2 adds `quire_desktop_app_v1.subject`. The objects the manager announces are
+      created at the manager's version, so a client that wants `subject` binds the manager at
+      version 2; a version 1 client sees exactly what it saw before.
     </description>
 
     <enum name="error">
@@ -142,10 +146,10 @@
     </event>
   </interface>
 
-  <interface name="quire_desktop_app_v1" version="1">
+  <interface name="quire_desktop_app_v1" version="2">
     <description summary="one running app">
       An app is the set of windows and processes with one app key. Its state burst ends with
-      `done`; `closed` is its last event.
+      `done`; `closed` ends its life (the client destroys the object).
     </description>
 
     <enum name="proof_kind">
@@ -234,8 +238,25 @@
 
     <event name="closed">
       <description summary="the app ended">
-        The last event; the client destroys the object.
+        The last event of the app's life; the client destroys the object.
       </description>
+    </event>
+
+    <event name="subject" since="2">
+      <description summary="the program behind the app, as the compositor established it">
+        The program image path (an absolute path) for a native process, or the sandbox's app id
+        for a sandboxed one. It is a fact the compositor established about the process that owns
+        the app's windows (it holds the process, reads the image the system owns, or has the
+        sandbox vouch for the app), not a claim the app made: unlike `claimed_id` it can be
+        compared with the standing of another process, such as the owner of the app's menu on the
+        session bus.
+
+        Sent in the app's state burst, after `identity`, and again if the program behind the app
+        changes. Never sent for a program the compositor cannot name (an image the person can
+        write, a process that has gone, a program that changed its image after it connected): no
+        event means no subject is known, not that the subject is empty.
+      </description>
+      <arg name="subject" type="string" summary="an image path or a sandbox app id"/>
     </event>
 
     <request name="activate">

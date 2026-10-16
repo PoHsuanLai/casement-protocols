@@ -86,7 +86,7 @@ pub use keys::{
     AppKey, CaptureId, ConfigId, GroupKey, HeadKey, ModeKey, SpaceKey, SurfaceKey, ToplevelKey,
     WorkspaceKey,
 };
-pub use names::{AppId, OutputName, SpaceId, ToplevelIdentifier};
+pub use names::{AppId, AppSubject, OutputName, SpaceId, ToplevelIdentifier};
 pub use protocol::{Protocol, ProtocolSet};
 pub use reduce::reduce;
 pub use state::DesktopState;

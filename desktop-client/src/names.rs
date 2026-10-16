@@ -53,6 +53,25 @@ impl AppId {
     }
 }
 
+/// The program behind an app as the compositor established it (`quire_desktop_app_v1.subject`):
+/// the image path of a native process, or the app id of a sandboxed one. A fact, not the app's
+/// claim, so it can be compared with the standing of another process (the owner of the app's
+/// menu on the session bus).
+#[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub struct AppSubject(String);
+
+impl AppSubject {
+    /// The subject `subject`.
+    pub fn new(subject: impl Into<String>) -> Self {
+        Self(subject.into())
+    }
+
+    /// The text.
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
 /// A Space's stable id (`quire_desktop_space_v1.id`), also the `id` of its ext-workspace
 /// workspace. [`crate::SpaceKey`] is this client's number for the Space's protocol object.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
