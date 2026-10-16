@@ -26,6 +26,9 @@ macro_rules! client_protocol {
             use self::__interfaces::*;
 
             wayland_scanner::generate_client_code!($path);
+            // The scanner reads the XML inside a macro, which rustc's dependency list does not
+            // record; including the bytes does, so a change to the XML alone rebuilds the crate.
+            const _: &[u8] = include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/", $path));
         }
     };
 }
