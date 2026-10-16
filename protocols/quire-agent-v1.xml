@@ -23,6 +23,9 @@
 
     Warning: this protocol is a draft and may change. The server side lives in the
     compositor (casement); the client side is cuad's `cua-desktop`.
+
+    Not served yet: casement does not advertise this global on any connection today, so a client
+    that looks for it finds nothing. Nothing may rely on a promise made here until the server lands.
   </description>
 
   <interface name="quire_agent_manager_v1" version="1">

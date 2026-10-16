@@ -30,6 +30,10 @@
     unobscured, for its arming time. The decision itself travels from the shell to its caller
     over D-Bus; this protocol only tells the shell when an answer is trustworthy.
 
+    Not served yet: casement does not advertise this global today, so the shell cannot rely on it
+    to tell a person's answer from a program's. Nothing may rely on a promise made here until the
+    server lands.
+
     A trusted surface anchors to a window by its ext_foreign_toplevel_handle_v1 identifier
     string, because the shell creates trusted surfaces on a different connection from the one
     that holds its toplevel handles, and no Wayland object crosses connections.

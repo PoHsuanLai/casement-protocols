@@ -35,9 +35,17 @@ docket-core, prov) take default features; Wayland clients take `client`; casemen
 | `protocols/quire-desktop-v1.xml` | `quire_desktop_manager_v1`, `quire_desktop_app_v1`, `quire_desktop_window_v1`, `quire_desktop_space_v1` | Shell and Agent connections (management requests are `not_permitted` on Agent) | casement | sill (full), cuad (read-only) |
 | `protocols/quire-shell-v1.xml` | `quire_shell_v1` (version 5: `permission_ask`, `permission_withdraw`, `permission_answer`, the consent question) | Shell connections | casement | sill through shell-host |
 | `protocols/quire-window-v1.xml` | `quire_window_manager_v1` (version 2: `quit`, the person asked the app to quit), `quire_window_v1` | every connection | casement | shell-host, ds-blitz, any app |
-| `protocols/quire-sensitive-v1.xml` | `quire_sensitive_manager_v1`, `quire_sensitive_surface_v1` | every connection | casement | shell-host, ds-blitz, any app |
-| `protocols/quire-agent-v1.xml` | `quire_agent_manager_v1`, `quire_agent_lease_v1` | Agent connections | casement | cuad |
-| `protocols/quire-trusted-surface-v1.xml` | `quire_trusted_manager_v1`, `quire_trusted_surface_v1` | Shell connections | casement | sill |
+| `protocols/quire-sensitive-v1.xml` | `quire_sensitive_manager_v1`, `quire_sensitive_surface_v1` | every connection, once served | not served yet | shell-host, ds-blitz, any app |
+| `protocols/quire-agent-v1.xml` | `quire_agent_manager_v1`, `quire_agent_lease_v1` | Agent connections, once served | not served yet | cuad |
+| `protocols/quire-trusted-surface-v1.xml` | `quire_trusted_manager_v1`, `quire_trusted_surface_v1` | Shell connections, once served | not served yet | sill |
+
+A protocol whose Server cell says "not served yet" has no server in casement: it is not
+advertised, a client finds no global, and nothing may rely on what its XML promises (PORTAL-14).
+Its XML says so in its first description (`Not served yet:`), and `tests/it/xml_introspection.rs`
+fails when the table and the XML disagree, or a file has no row. When a server lands, the same
+change turns the cell to `casement` and deletes the sentence. The masking `quire_sensitive_v1`
+promises applies to every capture casement makes, the portal's and the shell's included, from the
+day its server lands.
 
 Objects never cross connections, so the shell and trusted-surface protocols name windows by
 their ext-foreign-toplevel identifier string and apps by their app key string.
@@ -123,7 +131,7 @@ reads the same as the protocol.
 
 | File | Proves |
 | --- | --- |
-| `tests/it/xml_introspection.rs` | every file parses and is named after itself; every interface is `quire_*_v1` at version 1 (the shell's global at 5 and the window manager at 2, their newer messages last and saying `since=`); every request and event with its arguments, in opcode order, as frozen; error enums; codes dense from 0 (bitfields: single bits); every vocab enum has its XML enum's names and codes and every XML enum has a vocab type; cross-references resolve; the licence notice; `quire-agent-v1.xml`'s pinned bytes; with both features, the generated interfaces' names, versions and messages |
+| `tests/it/xml_introspection.rs` | every file parses and is named after itself; every file has a row in section 2 that says `casement` or `not served yet`, and its XML says `Not served yet:` exactly when the row does; every interface is `quire_*_v1` at version 1 (the shell's global at 5 and the window manager at 2, their newer messages last and saying `since=`); every request and event with its arguments, in opcode order, as frozen; error enums; codes dense from 0 (bitfields: single bits); every vocab enum has its XML enum's names and codes and every XML enum has a vocab type; cross-references resolve; the licence notice; `quire-agent-v1.xml`'s pinned bytes; with both features, the generated interfaces' names, versions and messages |
 | `tests/it/vocab_codes.rs` | (features `client,server`) every vocab enum accepts exactly the codes the generated enum accepts, with the same variant names, on both sides; `MacMods` bits |
 | `tests/it/round_trip.rs` | every vocab value round-trips through serde and its code; pinned JSON for stored forms |
 | `tests/it/receipt.rs` | receipt counts (table) and a pinned digest |

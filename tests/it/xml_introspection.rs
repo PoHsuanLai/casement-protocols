@@ -552,6 +552,62 @@ fn every_new_protocol_carries_the_mit_permission_notice() {
     }
 }
 
+/// The protocol table of `ARCHITECTURE.md` section 2: (file name, its Server cell).
+fn architecture_servers() -> Vec<(String, String)> {
+    let text = std::fs::read_to_string(
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("ARCHITECTURE.md"),
+    )
+    .expect("ARCHITECTURE.md");
+    text.lines()
+        .filter(|line| line.starts_with("| `protocols/"))
+        .filter_map(|line| {
+            let cells: Vec<&str> = line.split('|').map(str::trim).collect();
+            let file = cells.get(1)?.trim_matches('`').strip_prefix("protocols/")?;
+            Some((file.to_owned(), (*cells.get(4)?).to_owned()))
+        })
+        .collect()
+}
+
+#[test]
+fn every_protocol_is_served_or_says_it_is_not_served_yet() {
+    let rows = architecture_servers();
+    assert_eq!(
+        rows.len(),
+        support::FILES.len(),
+        "one row per file: {rows:?}"
+    );
+    for file in support::FILES {
+        let (_, server) = rows
+            .iter()
+            .find(|(name, _)| name == file)
+            .unwrap_or_else(|| panic!("{file} has no row in ARCHITECTURE.md"));
+        let text = std::fs::read_to_string(support::protocols_dir().join(file)).expect("the XML");
+        let says_not_served = text.contains("Not served yet:");
+        match server.as_str() {
+            "casement" => assert!(
+                !says_not_served,
+                "{file}: served, yet its XML says it is not"
+            ),
+            "not served yet" => assert!(
+                says_not_served,
+                "{file}: not served, yet its XML does not say so"
+            ),
+            other => panic!("{file}: the Server cell is {other:?}, not casement or not served yet"),
+        }
+    }
+}
+
+#[test]
+fn masking_applies_to_every_capture_trusted_ones_included() {
+    let text = std::fs::read_to_string(support::protocols_dir().join("quire-sensitive-v1.xml"))
+        .expect("the XML");
+    let flat = text.split_whitespace().collect::<Vec<_>>().join(" ");
+    assert!(
+        flat.contains("no capture path is unmasked"),
+        "sensitive XML states it"
+    );
+}
+
 /// FNV-1a 64, for pinning a file's bytes.
 fn fnv1a(bytes: &[u8]) -> u64 {
     bytes.iter().fold(0xcbf2_9ce4_8422_2325, |hash, byte| {
@@ -560,8 +616,9 @@ fn fnv1a(bytes: &[u8]) -> u64 {
 }
 
 /// `quire-agent-v1.xml` as cua held it (`cua/protocols/quire-agent-v1.xml` at cua `798866b`),
-/// with the description reworded for casement: its length and FNV-1a 64.
-const AGENT_XML_PIN: (usize, u64) = (9833, 0x569c_c67f_ef71_c548);
+/// with the description reworded for casement and the "Not served yet" paragraph added: its
+/// length and FNV-1a 64.
+const AGENT_XML_PIN: (usize, u64) = (10032, 0x70ff_92ed_354f_4f80);
 
 #[test]
 fn quire_agent_xml_has_the_bytes_cua_held() {

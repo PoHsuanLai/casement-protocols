@@ -280,3 +280,17 @@ compiler. Everything older is untouched; the new messages come last and say `sin
 | The design says a shell that answers faster than the sheet's disarm delay is a protocol error for that connection. Not in the wire: no delay is fixed anywhere yet, and a protocol error kills the shell's connection | sill's sheet has a stated disarm delay; a later version adds an `answered_too_soon` error entry (`since`) or casement treats a too-early answer as `dismissed` |
 | `quire_desktop_app_v1.identity` gaining a `subject` string (design 3.2, for QUIRE-12's menu-owner comparison) | the sill and quire lanes need it; it is a version 2 of `quire_desktop_app_v1` and the manager, so it is its own change |
 | `desktop-client` keeps no state for asks (`ShellEvent` moments): an answered ask is not echoed back by the compositor | sill's sheet queue proves it wants a `Shell::open_asks()` view, which needs casement to send `permission_withdraw` after an answer too |
+
+### PORTAL-14 (same lane): unserved protocols say so
+
+`quire_sensitive_v1`, `quire_agent_v1` and `quire_trusted_surface_v1` have no server in casement (the verified audit found no
+`GlobalKind` and no `Part` for them). Their XML descriptions now begin a paragraph `Not served yet:` and `ARCHITECTURE.md`
+section 2 says `not served yet` in the Server cell; `every_protocol_is_served_or_says_it_is_not_served_yet` fails when the table and
+the XML disagree. `quire_sensitive_v1`'s description now says `capture_hidden` masking applies to every capture, trusted clients'
+(the portal's and the shell's) included, and a test pins the sentence. `quire-agent-v1.xml`'s pin moved with the added paragraph
+(10032 bytes).
+
+| Item | Closes when |
+| --- | --- |
+| The casement-side gate (every protocol here has a `GlobalKind` or an explicit "not served" row) is casement's lane `pa2-croot`; this repo only states the rows | casement's gate reads the table above or carries its own list |
+| When a server for one of the three lands, the same change turns its Server cell to `casement` and deletes the `Not served yet:` paragraph (the test enforces both), and the masking of every capture ships with `quire_sensitive_v1` | the server lands |

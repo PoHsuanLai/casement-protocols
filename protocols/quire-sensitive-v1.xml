@@ -26,8 +26,13 @@
   <description summary="surfaces and regions kept from agents and capture">
     Any client may mark a surface, or regions of it, as sensitive. An `agent_hidden` region is
     masked in every frame an agent lease captures; a `capture_hidden` region is masked in every
-    capture the compositor serves (screenshots, screencasts and agent leases alike). The person
-    still sees it on screen.
+    capture the compositor serves (screenshots, screencasts and agent leases alike), including the
+    ones made for trusted clients such as the desktop's portal and the shell: no capture path is
+    unmasked. The person still sees it on screen.
+
+    Not served yet: casement does not advertise this global on any connection today, so a client
+    that looks for it finds nothing and its regions are not masked. The masking above applies from
+    the day the server lands, to every capture the compositor makes.
 
     This protocol is a draft. Until it is declared stable, version 1 may change in place with
     every client and the server updated together.
