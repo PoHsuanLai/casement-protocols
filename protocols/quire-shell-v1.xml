@@ -687,6 +687,9 @@
         sends this event again with the full `seconds`; the shell restarts its countdown (the `trial` id
         may stay the same, so a shell treats an id it already shows as the same question). A shell that
         bound a version older than 6 is never asked, and the change is reverted when the time runs out.
+
+        A shell that binds while a trial is open (it restarted) is sent this event at once, with `seconds`
+        set to the time left, so the question survives the shell's restart the way `permission_ask` does.
       </description>
       <arg name="trial" type="uint" summary="the trial's id; the answer and the end name it"/>
       <arg name="seconds" type="uint" summary="how long the person has"/>

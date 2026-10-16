@@ -336,5 +336,5 @@ say `since="6"`.
 
 | Item | Closes when |
 | --- | --- |
-| The XML does not say whether a shell that binds while a trial is open is sent `displays_trial` again (permission asks are replayed; a trial is not stated to be). If casement does not replay, a shell that restarts mid-trial never shows the question and the change reverts at the timer | casement's trial lane decides; if it replays, the description gains one sentence and the time sent is the time left |
+| The XML does not say whether a shell that binds while a trial is open is sent `displays_trial` again (permission asks are replayed; a trial is not stated to be). If casement does not replay, a shell that restarts mid-trial never shows the question and the change reverts at the timer | Decided: replayed, with `seconds` the time left; the description says so (casement's trial lane builds it) |
 | `entries` in the XML test support does not parse an entry's `since`, so `answered_too_soon`'s `since="6"` is checked only by wayland-scanner and review | the support parser keeps entry attributes |
