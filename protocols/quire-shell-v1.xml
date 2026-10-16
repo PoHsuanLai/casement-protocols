@@ -44,10 +44,14 @@
     may use one of seven powers (see the screen, type and click, help with typing, read the clipboard, lock
     the screen, change displays, manage windows); every message it adds says `since="5"`. A shell that bound
     an older version never receives the version 5 events and has nothing to answer; a program that needs
-    asking is then refused, without being remembered.
+    asking is then refused, without being remembered. Version 6 adds, again after everything older, the
+    compositor asking the shell whether the person keeps a display setup a program changed (with a time
+    limit, after which the old setup returns), and the error `answered_too_soon` for an answer that comes
+    before the question could have been read; every message and entry it adds says `since="6"`. A shell
+    that bound an older version is never asked, and the change is reverted when the time runs out.
   </description>
 
-  <interface name="quire_shell_v1" version="5">
+  <interface name="quire_shell_v1" version="6">
     <description summary="the shell's global">
       Advertised on Shell connections only.
 
@@ -59,6 +63,7 @@
       <entry name="bad_surface" value="1" summary="the surface is not a layer surface of this client"/>
       <entry name="unknown_toplevel" value="2" summary="no toplevel has the given identifier"/>
       <entry name="bad_target" value="3" since="2" summary="a Space target rectangle has no size"/>
+      <entry name="answered_too_soon" value="4" since="6" summary="an answer came before the question could have been read"/>
     </enum>
 
     <enum name="shell_role">
@@ -213,6 +218,14 @@
       <entry name="allow" value="0" summary="Allow, or Allow Once when the ask's memory is this_time_only"/>
       <entry name="deny" value="1" summary="Don't Allow"/>
       <entry name="dismissed" value="2" summary="the question was closed without an answer (Escape, or the sheet went away)"/>
+    </enum>
+
+    <enum name="trial_answer">
+      <description summary="what the person said about a changed display setup">
+        Used by `displays_trial_answer` (version 6).
+      </description>
+      <entry name="keep" value="0" summary="Keep: the new setup stays"/>
+      <entry name="revert" value="1" summary="Revert: the compositor goes back to the previous setup"/>
     </enum>
 
     <request name="set_role">
@@ -543,6 +556,20 @@
       <arg name="answer" type="uint" enum="answer"/>
     </request>
 
+    <request name="displays_trial_answer" since="6">
+      <description summary="the person answered a question from displays_trial">
+        `trial` is the id from `displays_trial`. The first answer settles it; an answer for a trial that is
+        unknown, over or withdrawn is ignored (it is not an error), so a late answer does no harm. `keep`
+        makes the new setup the one the displays have; `revert` puts the previous one back at once.
+        Escape, or the sheet going away, answers `revert`.
+
+        An answer that comes less than half a second after the event is the error `answered_too_soon`,
+        as for `permission_answer`.
+      </description>
+      <arg name="trial" type="uint" summary="the trial's id"/>
+      <arg name="answer" type="uint" enum="trial_answer"/>
+    </request>
+
     <event name="overview_output" since="2">
       <description summary="Mission Control is open or closed on an output">
         Sent for every output, just before each `overview_state`, and for an output that is
@@ -646,6 +673,33 @@
         withdrawal. An unknown `ask` is ignored.
       </description>
       <arg name="ask" type="uint" summary="the ask's id"/>
+    </event>
+
+    <event name="displays_trial" since="6">
+      <description summary="ask the person whether to keep a changed display setup">
+        A program other than the shell changed the displays (size, scale, position, or turned one on or
+        off). The compositor has applied the change and goes back to the previous setup after `seconds`
+        unless the person keeps it: no answer within that time reverts. The shell puts "Keep these
+        display settings?" on screen with Keep and Revert and a countdown of `seconds`. The words are the
+        shell's.
+
+        At most one trial is open. A further change by a program while it is open restarts the time and
+        sends this event again with the full `seconds`; the shell restarts its countdown (the `trial` id
+        may stay the same, so a shell treats an id it already shows as the same question). A shell that
+        bound a version older than 6 is never asked, and the change is reverted when the time runs out.
+      </description>
+      <arg name="trial" type="uint" summary="the trial's id; the answer and the end name it"/>
+      <arg name="seconds" type="uint" summary="how long the person has"/>
+    </event>
+
+    <event name="displays_trial_end" since="6">
+      <description summary="the question is over">
+        The shell takes the question down without answering. It is sent when the trial was answered (by
+        any shell connection), when the time ran out and the change was reverted, when the shell itself
+        changed the displays, and when a newer trial replaced this one. An answer for an ended or unknown
+        trial is ignored.
+      </description>
+      <arg name="trial" type="uint"/>
     </event>
   </interface>
 </protocol>

@@ -7,11 +7,12 @@ use casement_protocols::vocab::{
     ActorKind, AppLifeKind, AppVisibility, AskId, Attention, Corner, DragOutcome, Emphasis,
     GlowCode, KeyGesture, LeaseState, MacMods, Memory, MenuSourceKind, Modality, OverviewMode,
     OverviewState, PlacementMark, Power, ProofKind, Responsiveness, ScreenEdge, SensitivityLevel,
-    Shown, SpaceActivity, SpaceKind, SplitSide, SubjectKind, WindowRole, WindowStateKind,
+    Shown, SpaceActivity, SpaceKind, SplitSide, SubjectKind, TrialId, WindowRole, WindowStateKind,
 };
 use desktop_client::quire::{
-    AppChange, AppEvent, Lease, Linker, MenuSource, PermissionAsk, QuireEvent, ShellEvent,
-    SpaceChange, SpaceEvent, SpacePlace, WindowChange, WindowEvent, WindowGeometry, WindowObject,
+    AppChange, AppEvent, DisplayTrial, Lease, Linker, MenuSource, PermissionAsk, QuireEvent,
+    ShellEvent, SpaceChange, SpaceEvent, SpacePlace, WindowChange, WindowEvent, WindowGeometry,
+    WindowObject,
 };
 use desktop_client::toplevel::{Announcement, ToplevelChange, ToplevelEvent, ToplevelFlag};
 use desktop_client::workspace::{WorkspaceChange, WorkspaceEvent, WorkspaceFlag};
@@ -837,6 +838,8 @@ fn moments_change_no_state() {
             Memory::Remembered,
         )),
         ShellEvent::PermissionWithdraw(AskId::new(1)),
+        ShellEvent::DisplaysTrial(DisplayTrial::new(TrialId::new(1), 15)),
+        ShellEvent::DisplaysTrialEnd(TrialId::new(1)),
         ShellEvent::Killed,
     ];
     for moment in moments {
@@ -844,6 +847,12 @@ fn moments_change_no_state() {
         let after = reduce(before.clone(), shell(moment.clone()));
         assert_eq!(after, before, "{moment:?}");
     }
+}
+
+#[test]
+fn a_display_trial_says_how_long_the_person_has() {
+    let trial = DisplayTrial::new(TrialId::new(2), 15);
+    assert_eq!(trial.within(), std::time::Duration::from_secs(15));
 }
 
 // The linker.

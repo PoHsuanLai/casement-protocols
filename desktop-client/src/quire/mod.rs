@@ -23,6 +23,7 @@ mod set;
 mod shell;
 mod space;
 mod targets;
+mod trial;
 mod window;
 
 pub use app::{AppChange, AppEvent, MenuSource, QuireApp};
@@ -35,6 +36,7 @@ pub use shell::{
 };
 pub use space::{QuireSpace, SpaceChange, SpaceEvent};
 pub use targets::check_targets;
+pub use trial::DisplayTrial;
 pub use window::{Lease, QuireWindow, SpacePlace, WindowChange, WindowEvent, WindowGeometry};
 
 pub(crate) use project::project_toplevels;

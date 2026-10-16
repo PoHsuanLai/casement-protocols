@@ -277,7 +277,6 @@ compiler. Everything older is untouched; the new messages come last and say `sin
 
 | Item | Closes when |
 | --- | --- |
-| The design says a shell that answers faster than the sheet's disarm delay is a protocol error for that connection. Not in the wire: no delay is fixed anywhere yet, and a protocol error kills the shell's connection | sill's sheet has a stated disarm delay; a later version adds an `answered_too_soon` error entry (`since`) or casement treats a too-early answer as `dismissed` |
 | `desktop-client` keeps no state for asks (`ShellEvent` moments): an answered ask is not echoed back by the compositor | sill's sheet queue proves it wants a `Shell::open_asks()` view, which needs casement to send `permission_withdraw` after an answer too |
 
 ### PORTAL-14 (same lane): unserved protocols say so
@@ -313,3 +312,29 @@ untouched.
 | Item | Closes when |
 | --- | --- |
 | A sandboxed app that reaches the compositor through a security-context socket (`ConnectionRole::Sandboxed`) has no `ClientStanding` in casement's model, so it gets no `subject` yet; its `identity.proof` is already `security_context` | casement records the sandbox's app id for those connections |
+
+## wave-2026-10-17/cproto6: `quire_shell_v1` version 6
+
+`quire_shell_v1` is now **version 6** (casement lane `pa2-cwl2` asked: CASW-10, the display trial, and the `answered_too_soon` error
+that closes the row pa2-cproto left open). Written without a compiler. Everything older is untouched; the new messages come last and
+say `since="6"`.
+
+- Error entry `answered_too_soon` = 4, `since="6"` (the version 5 `error` enum stays as it shipped): an answer that comes before the
+  question could have been read. The XML states it for `displays_trial_answer`; casement applies the same rule (500 ms) to
+  `permission_answer`. The 500 ms is casement's constant, the XML says "less than half a second".
+- Enum `trial_answer` (keep 0, revert 1), vocab `TrialAnswer` and `TrialId(u32)` in `src/vocab/trial.rs`.
+- Request `displays_trial_answer(trial, answer)`; events `displays_trial(trial, seconds)` and `displays_trial_end(trial)`. The XML says:
+  a program other than the shell changed the displays; the shell shows "Keep these display settings?" with Keep and Revert and a
+  countdown; no answer in time reverts; `displays_trial_end` takes the question down (answered, timed out, the shell's own change, or
+  replaced); an answer for an ended or unknown trial is ignored, not an error; a further change restarts the time and sends
+  `displays_trial` again (the id may stay the same).
+- `desktop-client`: `ShellEvent::{DisplaysTrial(DisplayTrial), DisplaysTrialEnd(TrialId)}` (moments), `DisplayTrial { trial, seconds }`
+  with `within()`, `DesktopCommand::AnswerTrial { trial, answer }` (`NotBound` below version 6), the shell is bound at `1..=6`.
+- Tests: the version-ordered message test has a version 6 column, `the_newer_enums_are_used_only_by_messages_of_the_version_that_added_them`
+  replaces the version-5-only test, the frozen table (request, two events, the error entry), interface version 6, vocab codes (both
+  sides), a round trip for `TrialAnswer`, `tests/it/trial.rs` (`TrialId`), desktop-client kinds (46), the moment test and `DisplayTrial::within`.
+
+| Item | Closes when |
+| --- | --- |
+| The XML does not say whether a shell that binds while a trial is open is sent `displays_trial` again (permission asks are replayed; a trial is not stated to be). If casement does not replay, a shell that restarts mid-trial never shows the question and the change reverts at the timer | casement's trial lane decides; if it replays, the description gains one sentence and the time sent is the time left |
+| `entries` in the XML test support does not parse an entry's `since`, so `answered_too_soon`'s `since="6"` is checked only by wayland-scanner and review | the support parser keeps entry attributes |

@@ -77,6 +77,7 @@ macro_rules! check_side {
         same_codes::<vocab::SubjectKind, shell::SubjectKind>();
         same_codes::<vocab::Memory, shell::Memory>();
         same_codes::<vocab::Answer, shell::Answer>();
+        same_codes::<vocab::TrialAnswer, shell::TrialAnswer>();
         same_codes::<vocab::WindowRole, quire_window::WindowRole>();
         same_codes::<vocab::TileZone, quire_window::TileZone>();
         same_codes::<vocab::PlaceTarget, quire_window::PlaceTarget>();

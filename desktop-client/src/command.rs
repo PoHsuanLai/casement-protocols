@@ -8,7 +8,8 @@ use crate::keys::{
 use crate::names::{OutputName, SpaceId, ToplevelIdentifier};
 use crate::output::OutputConfig;
 use casement_protocols::vocab::{
-    Answer, AskId, Assign, OverviewMode, PlaceTarget, ShellRole, Toggle, WindowEntry,
+    Answer, AskId, Assign, OverviewMode, PlaceTarget, ShellRole, Toggle, TrialAnswer, TrialId,
+    WindowEntry,
 };
 
 /// A request to the compositor. Targets are keys from [`crate::DesktopState`].
@@ -203,6 +204,17 @@ pub enum DesktopCommand {
         /// What the person said.
         answer: Answer,
     },
+    /// The person answered a question about a changed display setup
+    /// ([`ShellEvent::DisplaysTrial`](crate::quire::ShellEvent::DisplaysTrial)); send
+    /// [`TrialAnswer::Revert`] when the sheet goes away without an answer (version 6). Answering
+    /// faster than the person could have read the question is a protocol error for the shell's
+    /// connection. Quire arm, shell role.
+    AnswerTrial {
+        /// The trial, by the id the event carried.
+        trial: TrialId,
+        /// What the person said.
+        answer: TrialAnswer,
+    },
 }
 
 /// A place a dragged window can be dropped on a Space.
@@ -316,6 +328,8 @@ pub enum CommandKind {
     SetNewSpaceTarget,
     /// [`DesktopCommand::AnswerPermission`].
     AnswerPermission,
+    /// [`DesktopCommand::AnswerTrial`].
+    AnswerTrial,
 }
 
 impl DesktopCommand {
@@ -367,6 +381,7 @@ impl DesktopCommand {
             Self::SetSpaceTargets { .. } => CommandKind::SetSpaceTargets,
             Self::SetNewSpaceTarget { .. } => CommandKind::SetNewSpaceTarget,
             Self::AnswerPermission { .. } => CommandKind::AnswerPermission,
+            Self::AnswerTrial { .. } => CommandKind::AnswerTrial,
         }
     }
 }

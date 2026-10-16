@@ -10,7 +10,8 @@ use casement_protocols::vocab::{
     PlaceTarget, PlacementMark, Power, PressEdge, ProofKind, ReceiptCounts, ReceiptDigest,
     ReceiptItem, Responsiveness, RevokeReason, RunMode, ScreenEdge, SensitivityLevel, ShellRole,
     Shown, SpaceActivity, SpaceKind, SplitSide, SubjectKind, Suspend, TileZone, Toggle,
-    TrustedAnchor, TrustedKind, WindowEntry, WindowRole, WindowStateKind, WireCode, Withdrawn,
+    TrialAnswer, TrustedAnchor, TrustedKind, WindowEntry, WindowRole, WindowStateKind, WireCode,
+    Withdrawn,
 };
 use serde::Serialize;
 use serde::de::DeserializeOwned;
@@ -76,6 +77,7 @@ fn every_vocab_enum_round_trips() {
     every_value_round_trips::<SubjectKind>("SubjectKind");
     every_value_round_trips::<Memory>("Memory");
     every_value_round_trips::<Answer>("Answer");
+    every_value_round_trips::<TrialAnswer>("TrialAnswer");
     every_value_round_trips::<OverviewMode>("OverviewMode");
     every_value_round_trips::<OverviewState>("OverviewState");
     every_value_round_trips::<RunMode>("RunMode");

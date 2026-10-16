@@ -99,7 +99,8 @@ pub fn requires_on(
         | DesktopCommand::DivideSplit { .. }
         | DesktopCommand::SetSpaceTargets { .. }
         | DesktopCommand::SetNewSpaceTarget { .. }
-        | DesktopCommand::AnswerPermission { .. } => QUIRE_SHELL,
+        | DesktopCommand::AnswerPermission { .. }
+        | DesktopCommand::AnswerTrial { .. } => QUIRE_SHELL,
     }
 }
 

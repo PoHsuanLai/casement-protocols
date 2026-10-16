@@ -58,7 +58,8 @@ pub(super) fn carries(command: &DesktopCommand, quire_arm: bool) -> bool {
         | DesktopCommand::DivideSplit { .. }
         | DesktopCommand::SetSpaceTargets { .. }
         | DesktopCommand::SetNewSpaceTarget { .. }
-        | DesktopCommand::AnswerPermission { .. } => true,
+        | DesktopCommand::AnswerPermission { .. }
+        | DesktopCommand::AnswerTrial { .. } => true,
         _ => false,
     }
 }
@@ -270,6 +271,16 @@ pub(super) fn send(wire: &Wire, command: DesktopCommand) -> Result<(), CommandEr
                 });
             }
             shell.permission_answer(ask.get(), generated(answer)?);
+        }
+        DesktopCommand::AnswerTrial { trial, answer } => {
+            let shell = shell(wire, kind)?;
+            if shell.version() < 6 {
+                return Err(CommandError::NotBound {
+                    command: kind,
+                    needs: Protocol::QuireShell,
+                });
+            }
+            shell.displays_trial_answer(trial.get(), generated(answer)?);
         }
         _ => {}
     }

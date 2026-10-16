@@ -121,6 +121,7 @@ pub const INTERFACES: &[(&str, &str, &[&str], &[&str])] = &[
             "space_target(output: wl_output, space_id: string, x: int, y: int, width: uint, height: uint)",
             "space_target_new(output: wl_output, x: int, y: int, width: uint, height: uint)",
             "permission_answer(ask: uint, answer: uint<answer>)",
+            "displays_trial_answer(trial: uint, answer: uint<trial_answer>)",
         ],
         &[
             "modifiers(surface: wl_surface, mods: uint<mac_mods>)",
@@ -150,6 +151,8 @@ pub const INTERFACES: &[(&str, &str, &[&str], &[&str])] = &[
             "window_drag_end(output: wl_output, toplevel: string, outcome: uint<drag_outcome>)",
             "permission_ask(ask: uint, power: uint<power>, subject_kind: uint<subject_kind>, subject: string, memory: uint<memory>)",
             "permission_withdraw(ask: uint)",
+            "displays_trial(trial: uint, seconds: uint)",
+            "displays_trial_end(trial: uint)",
         ],
     ),
     (
@@ -261,6 +264,7 @@ pub const ERRORS: &[(&str, &[&str])] = &[
             "bad_surface",
             "unknown_toplevel",
             "bad_target",
+            "answered_too_soon",
         ],
     ),
     ("quire_window_manager_v1", &["already_constructed"]),

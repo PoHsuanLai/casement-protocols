@@ -14,6 +14,7 @@ mod receipt;
 mod sensitive;
 mod shell;
 mod space;
+mod trial;
 mod trusted;
 mod window;
 
@@ -30,6 +31,7 @@ pub use shell::{
     SplitSide, WindowEntry,
 };
 pub use space::{SpaceActivity, SpaceKind};
+pub use trial::{TrialAnswer, TrialId};
 pub use trusted::{TrustedAnchor, TrustedKind, Withdrawn};
 pub use window::{
     Assign, Edited, Emphasis, FrameMode, Modality, PlaceKind, PlaceTarget, PlacementMark,

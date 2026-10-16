@@ -12,7 +12,8 @@ use casement_protocols::vocab::{
     MenuSourceKind, Modality, OverviewMode, OverviewState, PlaceKind, PlaceTarget, PlacementMark,
     Power, ProofKind, Responsiveness, RevokeReason, RunMode, ScreenEdge, SensitivityLevel,
     ShellRole, Shown, SpaceActivity, SpaceKind, SplitSide, SubjectKind, Suspend, TileZone, Toggle,
-    TrustedAnchor, TrustedKind, WindowEntry, WindowRole, WindowStateKind, WireCode, Withdrawn,
+    TrialAnswer, TrustedAnchor, TrustedKind, WindowEntry, WindowRole, WindowStateKind, WireCode,
+    Withdrawn,
 };
 use support::frozen::{ERRORS, EXTERNAL, INTERFACES};
 use support::{Interface, Message, Protocol, protocols};
@@ -102,6 +103,7 @@ const VOCAB: &[(&str, &str, Entries)] = &[
     ("quire_shell_v1", "subject_kind", entries::<SubjectKind>),
     ("quire_shell_v1", "memory", entries::<Memory>),
     ("quire_shell_v1", "answer", entries::<Answer>),
+    ("quire_shell_v1", "trial_answer", entries::<TrialAnswer>),
     ("quire_window_v1", "window_role", entries::<WindowRole>),
     ("quire_window_v1", "tile_zone", entries::<TileZone>),
     ("quire_window_v1", "place_target", entries::<PlaceTarget>),
@@ -213,7 +215,7 @@ fn every_interface_is_a_quire_v1_interface_at_its_version() {
         // Only the shell's global, the window manager and the desktop's manager and app (whose
         // objects take the manager's version) have grown past version 1.
         let version = match interface.name.as_str() {
-            "quire_shell_v1" => "5",
+            "quire_shell_v1" => "6",
             "quire_window_manager_v1" | "quire_desktop_manager_v1" | "quire_desktop_app_v1" => "2",
             _ => "1",
         };
@@ -226,7 +228,7 @@ fn the_shells_newer_messages_are_appended_in_version_order_and_say_since() {
     let protocols = protocols();
     let shell = interface(&protocols, "quire_shell_v1");
     let names = |list: &[Message]| -> Vec<String> { list.iter().map(|m| m.name.clone()).collect() };
-    // (kind, messages, the names added by version 2, 3, 4 and 5), each in wire order.
+    // (kind, messages, the names added by version 2, 3, 4, 5 and 6), each in wire order.
     for (kind, messages, added) in [
         (
             "requests",
@@ -240,6 +242,7 @@ fn the_shells_newer_messages_are_appended_in_version_order_and_say_since() {
                 &["space_target_new"][..],
                 &[] as &[&str],
                 &["permission_answer"][..],
+                &["displays_trial_answer"][..],
             ],
         ),
         (
@@ -250,6 +253,7 @@ fn the_shells_newer_messages_are_appended_in_version_order_and_say_since() {
                 &["drop_target_new"][..],
                 &["window_drag_begin", "window_drag_end"][..],
                 &["permission_ask", "permission_withdraw"][..],
+                &["displays_trial", "displays_trial_end"][..],
             ],
         ),
     ] {
@@ -280,26 +284,31 @@ fn the_shells_newer_messages_are_appended_in_version_order_and_say_since() {
 }
 
 #[test]
-fn the_consent_enums_are_used_only_by_version_5_messages() {
+fn the_newer_enums_are_used_only_by_messages_of_the_version_that_added_them() {
     let protocols = protocols();
     let shell = interface(&protocols, "quire_shell_v1");
-    for name in ["power", "subject_kind", "memory", "answer"] {
-        let users: Vec<(&str, Option<&str>)> = shell
-            .requests
-            .iter()
-            .chain(&shell.events)
-            .filter(|m| {
-                m.args
-                    .iter()
-                    .any(|a| a.enumeration.as_deref() == Some(name))
-            })
-            .map(|m| (m.name.as_str(), m.since.as_deref()))
-            .collect();
-        assert!(!users.is_empty(), "{name} is used by a message");
-        assert!(
-            users.iter().all(|(_, since)| *since == Some("5")),
-            "{name}: a version 4 client would see it through {users:?}"
-        );
+    for (version, enums) in [
+        ("5", &["power", "subject_kind", "memory", "answer"][..]),
+        ("6", &["trial_answer"][..]),
+    ] {
+        for name in enums {
+            let users: Vec<(&str, Option<&str>)> = shell
+                .requests
+                .iter()
+                .chain(&shell.events)
+                .filter(|m| {
+                    m.args
+                        .iter()
+                        .any(|a| a.enumeration.as_deref() == Some(name))
+                })
+                .map(|m| (m.name.as_str(), m.since.as_deref()))
+                .collect();
+            assert!(!users.is_empty(), "{name} is used by a message");
+            assert!(
+                users.iter().all(|(_, since)| *since == Some(version)),
+                "{name}: a client older than version {version} would see it through {users:?}"
+            );
+        }
     }
 }
 

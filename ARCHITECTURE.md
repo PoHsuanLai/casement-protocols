@@ -33,7 +33,7 @@ docket-core, prov) take default features; Wayland clients take `client`; casemen
 | File | Interfaces | Advertised on | Server | Clients |
 | --- | --- | --- | --- | --- |
 | `protocols/quire-desktop-v1.xml` | `quire_desktop_manager_v1` (version 2), `quire_desktop_app_v1` (version 2: `subject`, the program behind the app as the compositor established it), `quire_desktop_window_v1`, `quire_desktop_space_v1` | Shell and Agent connections (management requests are `not_permitted` on Agent) | casement | sill (full), cuad (read-only) |
-| `protocols/quire-shell-v1.xml` | `quire_shell_v1` (version 5: `permission_ask`, `permission_withdraw`, `permission_answer`, the consent question) | Shell connections | casement | sill through shell-host |
+| `protocols/quire-shell-v1.xml` | `quire_shell_v1` (version 5: `permission_ask`, `permission_withdraw`, `permission_answer`, the consent question; version 6: `displays_trial`, `displays_trial_end`, `displays_trial_answer`, the display trial, and the `answered_too_soon` error) | Shell connections | casement | sill through shell-host |
 | `protocols/quire-window-v1.xml` | `quire_window_manager_v1` (version 2: `quit`, the person asked the app to quit), `quire_window_v1` | every connection | casement | shell-host, ds-blitz, any app |
 | `protocols/quire-sensitive-v1.xml` | `quire_sensitive_manager_v1`, `quire_sensitive_surface_v1` | every connection, once served | not served yet | shell-host, ds-blitz, any app |
 | `protocols/quire-agent-v1.xml` | `quire_agent_manager_v1`, `quire_agent_lease_v1` | Agent connections, once served | not served yet | cuad |
@@ -63,7 +63,7 @@ wayland-scanner turns that into the owning module's type, so one concept has one
 | `quire_desktop_app_v1` | `proof_kind`, `app_life_kind`, `app_visibility`, `menu_source_kind`, `attention` |
 | `quire_desktop_window_v1` | `modality`, `window_state_kind`, `place_kind`, `responsiveness`, `lease_state`, `toggle`, `assign` |
 | `quire_desktop_space_v1` | `space_kind`, `space_activity` |
-| `quire_shell_v1` | `shell_role`, `mac_mods` (bitfield), `key_gesture`, `overview_mode`, `overview_state`, `corner`, `screen_edge`, `shown`, `window_entry`, `split_side`, `drag_outcome`, `power`, `subject_kind`, `memory`, `answer` |
+| `quire_shell_v1` | `shell_role`, `mac_mods` (bitfield), `key_gesture`, `overview_mode`, `overview_state`, `corner`, `screen_edge`, `shown`, `window_entry`, `split_side`, `drag_outcome`, `power`, `subject_kind`, `memory`, `answer`, `trial_answer` |
 | `quire_trusted_manager_v1`, `quire_trusted_surface_v1` | `trusted_kind`, `trusted_anchor`; `withdrawn` |
 
 The window, sensitive, agent and trusted-surface protocols name no other protocol of ours; the
@@ -158,7 +158,7 @@ holds the frozen interface as tables (every message with its arguments, every er
   wayland-scanner's generated code.
 - **Protocol evolution:** until the user declares the protocols released, a v1 XML changes in
   place, with the server and every client updated in the same change (one `~/desktop` manifest
-  bump); no `since=` until then, except where a global has already grown: `quire_shell_v1` (version 5),
+  bump); no `since=` until then, except where a global has already grown: `quire_shell_v1` (version 6),
   `quire_window_manager_v1` (version 2: the `quit` event, sent only to a client that bound
   version 2, so a version 1 client keeps working) and `quire_desktop_manager_v1` with
   `quire_desktop_app_v1` (version 2: the `subject` event, sent only to a client that bound the
@@ -264,3 +264,29 @@ Rules the XML states and the consumers rely on:
 no state: the shell keeps its queue by id, because an answered ask is not echoed back) and
 `DesktopCommand::AnswerPermission { ask, answer }` (45 command kinds; the shell is bound at
 `1..=5`; the command is refused with `NotBound` on a compositor that serves less than version 5).
+
+## 10. Display trial: `quire_shell_v1` version 6
+
+When a program other than the shell changes the displays, casement applies the change, asks the
+person whether to keep it, and goes back to the previous setup if the person does not say so in
+time. A bad mode can blank the screen, so the timeout is the safety net, not the answer.
+
+| Message | Direction | Meaning |
+| --- | --- | --- |
+| `displays_trial(trial, seconds)` | casement to shell | the shell shows "Keep these display settings?" with Keep and Revert and a countdown of `seconds`; at most one trial is open, and a further change restarts the time (same or new id) |
+| `displays_trial_end(trial)` | casement to shell | take the question down without answering: answered, timed out (reverted), the shell itself changed the displays, or replaced |
+| `displays_trial_answer(trial, answer)` | shell to casement | `keep` or `revert` (`TrialAnswer`); the first answer settles it, an answer for an ended or unknown trial is ignored (not an error) |
+
+- **Version gate.** All three say `since="6"`; a shell that bound an older version is never asked
+  and the change is reverted when the time runs out.
+- **`answered_too_soon`** (error 4, `since="6"`): an answer that comes less than half a second after
+  the question could have been read is a protocol error on that shell object. It covers
+  `permission_answer` and `displays_trial_answer`. The delay itself (500 ms) is casement's
+  constant; the XML states the half second.
+- **Escape or the sheet going away answers `revert`.**
+
+`desktop-client`: `ShellEvent::{DisplaysTrial(DisplayTrial), DisplaysTrialEnd(TrialId)}` (moments,
+no state: the shell keeps its one open question by id) and `DesktopCommand::AnswerTrial { trial,
+answer }` (46 command kinds; the shell is bound at `1..=6`; the command is refused with `NotBound`
+on a compositor that serves less than version 6). Vocab: `TrialAnswer { Keep, Revert }`,
+`TrialId(u32)`.

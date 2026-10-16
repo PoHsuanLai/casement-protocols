@@ -5,14 +5,14 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use super::PermissionAsk;
+use super::{DisplayTrial, PermissionAsk};
 use crate::geometry::Point;
 use crate::geometry::Rect;
 use crate::keys::SurfaceKey;
 use crate::names::{AppId, OutputName, SpaceId, ToplevelIdentifier};
 use casement_protocols::vocab::{
     AskId, Corner, DragOutcome, KeyGesture, MacMods, OverviewMode, OverviewState, ScreenEdge,
-    Shown, SplitSide,
+    Shown, SplitSide, TrialId,
 };
 
 /// One event of `quire_shell_v1`.
@@ -165,6 +165,14 @@ pub enum ShellEvent {
     /// The compositor no longer needs the answer to this ask (version 5; a moment): take its
     /// sheet down without answering.
     PermissionWithdraw(AskId),
+    /// A program other than the shell changed the displays and the compositor asks the person
+    /// whether to keep them (version 6; a moment). The shell shows "Keep these display settings?"
+    /// with a countdown and answers with `DesktopCommand::AnswerTrial`; no answer in time reverts.
+    /// A further change restarts the countdown with this event again.
+    DisplaysTrial(DisplayTrial),
+    /// The trial is over (answered, timed out, replaced; version 6; a moment): take the question
+    /// down without answering.
+    DisplaysTrialEnd(TrialId),
     /// The kill chord was pressed; every agent lease has ended (a moment).
     Killed,
 }
@@ -476,6 +484,8 @@ pub(super) fn reduce_shell(mut shell: Shell, event: ShellEvent) -> Shell {
         | ShellEvent::WindowMenu { .. }
         | ShellEvent::PermissionAsk(_)
         | ShellEvent::PermissionWithdraw(_)
+        | ShellEvent::DisplaysTrial(_)
+        | ShellEvent::DisplaysTrialEnd(_)
         | ShellEvent::Killed => {}
     }
     shell

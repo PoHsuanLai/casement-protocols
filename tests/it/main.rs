@@ -6,6 +6,7 @@ mod privilege;
 mod receipt;
 mod round_trip;
 mod support;
+mod trial;
 #[cfg(all(feature = "client", feature = "server"))]
 mod vocab_codes;
 mod xml_introspection;

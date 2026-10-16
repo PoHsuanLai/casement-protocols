@@ -1,7 +1,8 @@
 //! Offered protocols and `supports`.
 
 use casement_protocols::vocab::{
-    Answer, AskId, Assign, OverviewMode, PlaceTarget, ShellRole, Toggle, WindowEntry,
+    Answer, AskId, Assign, OverviewMode, PlaceTarget, ShellRole, Toggle, TrialAnswer, TrialId,
+    WindowEntry,
 };
 use desktop_client::capture::CaptureRequest;
 use desktop_client::output::OutputConfig;
@@ -267,6 +268,13 @@ fn quire_only() -> Vec<(DesktopCommand, Vec<Protocol>)> {
                 ask: AskId::new(3),
                 answer: Answer::Allow,
             },
+            shell.clone(),
+        ),
+        (
+            DesktopCommand::AnswerTrial {
+                trial: TrialId::new(4),
+                answer: TrialAnswer::Keep,
+            },
             shell,
         ),
     ]
@@ -375,5 +383,5 @@ fn every_command_has_a_distinct_kind_and_needs_something() {
         );
         kinds.push(command.kind());
     }
-    assert_eq!(kinds.len(), 45);
+    assert_eq!(kinds.len(), 46);
 }
