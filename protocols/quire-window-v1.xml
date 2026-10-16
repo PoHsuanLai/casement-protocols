@@ -32,12 +32,20 @@
     emphasis (key, main or inactive) and its current placement.
 
     This protocol is a draft. Until it is declared stable, version 1 may change in place with
-    every client and the server updated together.
+    every client and the server updated together. Version 2 adds, after everything older, the
+    person's request that the whole app quit; the event it adds says `since="2"` and is sent
+    only to a client that bound the manager at version 2 or later.
   </description>
 
-  <interface name="quire_window_manager_v1" version="1">
+  <interface name="quire_window_manager_v1" version="2">
     <description summary="extends xdg toplevels">
       The global a client binds to extend its toplevels. Advertised on every connection.
+
+      The manager is also where the app hears that the person asked it to quit (`quit`,
+      version 2): a quit is about the whole app, not one window, and an app with no window
+      still has this object. A client that wants to hear it keeps a manager bound at version 2
+      or later for as long as it runs; destroying the manager ends the listening, and the
+      compositor then closes the app's windows one by one instead.
     </description>
 
     <enum name="error">
@@ -59,6 +67,24 @@
         Objects already created stay valid.
       </description>
     </request>
+
+    <event name="quit" since="2">
+      <description summary="the person asked the app to quit">
+        The person asked the app to quit (Command-Q, the Quit item of its menu, or the shell
+        asking for it): save or ask, then exit. This is macOS's applicationShouldTerminate.
+        It is sent in place of asking each window to close, and it reaches an app with no
+        window.
+
+        The app answers by acting, not by a reply: it exits, or it stays (a "Save changes?"
+        sheet, or it declines). The compositor shows the app as quitting for a short grace
+        and takes it for running again if it is still there after that. An app that does
+        nothing is not stuck: the person can close its windows one by one, and Force Quit
+        still ends it.
+
+        Sent to every manager of the connection bound at version 2 or later. A client bound
+        at version 1 never receives it, and the compositor closes its windows one by one.
+      </description>
+    </event>
   </interface>
 
   <interface name="quire_window_v1" version="1">

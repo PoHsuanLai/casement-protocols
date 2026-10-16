@@ -21,8 +21,10 @@ pub enum Protocol {
     ExtOutputImageCaptureSource,
     /// `quire_desktop_manager_v1`: apps, windows and Spaces (the Quire arm).
     QuireDesktop,
-    /// `quire_window_manager_v1`: an app's own say about its toplevels. Recorded in the offer;
-    /// this crate does not bind it (apps bind it for their own windows).
+    /// `quire_window_manager_v1`: an app's own say about its toplevels, and (version 2) the
+    /// person's request that the app quit (`quit`). Recorded in the offer; this crate does not
+    /// bind it (apps bind it for their own windows and listen for `quit` on the generated
+    /// `client::quire_window_v1` binding).
     QuireWindow,
     /// `quire_shell_v1`: the shell's roles and system events, on Shell connections only.
     QuireShell,

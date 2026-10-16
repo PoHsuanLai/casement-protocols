@@ -206,9 +206,10 @@ fn every_interface_is_a_quire_v1_interface_at_its_version() {
             "{}",
             interface.name
         );
-        // Only the shell's global has grown past version 1.
+        // Only the shell's global and the window manager have grown past version 1.
         let version = match interface.name.as_str() {
             "quire_shell_v1" => "4",
+            "quire_window_manager_v1" => "2",
             _ => "1",
         };
         assert_eq!(interface.version, version, "{}", interface.name);
@@ -266,6 +267,25 @@ fn the_shells_newer_messages_are_appended_in_version_order_and_say_since() {
             "{kind}: a version 1 message has no since"
         );
     }
+}
+
+#[test]
+fn the_window_managers_quit_event_comes_last_and_says_since_2() {
+    let protocols = protocols();
+    let manager = interface(&protocols, "quire_window_manager_v1");
+    let names: Vec<&str> = manager.events.iter().map(|m| m.name.as_str()).collect();
+    assert_eq!(names, ["quit"]);
+    assert!(
+        manager
+            .events
+            .iter()
+            .all(|m| m.since.as_deref() == Some("2")),
+        "a version 2 event says since=2"
+    );
+    assert!(
+        manager.requests.iter().all(|m| m.since.is_none()),
+        "the requests are version 1"
+    );
 }
 
 #[test]

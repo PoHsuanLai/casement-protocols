@@ -34,7 +34,7 @@ docket-core, prov) take default features; Wayland clients take `client`; casemen
 | --- | --- | --- | --- | --- |
 | `protocols/quire-desktop-v1.xml` | `quire_desktop_manager_v1`, `quire_desktop_app_v1`, `quire_desktop_window_v1`, `quire_desktop_space_v1` | Shell and Agent connections (management requests are `not_permitted` on Agent) | casement | sill (full), cuad (read-only) |
 | `protocols/quire-shell-v1.xml` | `quire_shell_v1` | Shell connections | casement | sill through shell-host |
-| `protocols/quire-window-v1.xml` | `quire_window_manager_v1`, `quire_window_v1` | every connection | casement | shell-host, ds-blitz, any app |
+| `protocols/quire-window-v1.xml` | `quire_window_manager_v1` (version 2: `quit`, the person asked the app to quit), `quire_window_v1` | every connection | casement | shell-host, ds-blitz, any app |
 | `protocols/quire-sensitive-v1.xml` | `quire_sensitive_manager_v1`, `quire_sensitive_surface_v1` | every connection | casement | shell-host, ds-blitz, any app |
 | `protocols/quire-agent-v1.xml` | `quire_agent_manager_v1`, `quire_agent_lease_v1` | Agent connections | casement | cuad |
 | `protocols/quire-trusted-surface-v1.xml` | `quire_trusted_manager_v1`, `quire_trusted_surface_v1` | Shell connections | casement | sill |
@@ -122,7 +122,7 @@ reads the same as the protocol.
 
 | File | Proves |
 | --- | --- |
-| `tests/it/xml_introspection.rs` | every file parses and is named after itself; every interface is `quire_*_v1` at version 1; every request and event with its arguments, in opcode order, as frozen; error enums; codes dense from 0 (bitfields: single bits); every vocab enum has its XML enum's names and codes and every XML enum has a vocab type; cross-references resolve; the licence notice; `quire-agent-v1.xml`'s pinned bytes; with both features, the generated interfaces' names, versions and messages |
+| `tests/it/xml_introspection.rs` | every file parses and is named after itself; every interface is `quire_*_v1` at version 1 (the shell's global at 4 and the window manager at 2, their newer messages last and saying `since=`); every request and event with its arguments, in opcode order, as frozen; error enums; codes dense from 0 (bitfields: single bits); every vocab enum has its XML enum's names and codes and every XML enum has a vocab type; cross-references resolve; the licence notice; `quire-agent-v1.xml`'s pinned bytes; with both features, the generated interfaces' names, versions and messages |
 | `tests/it/vocab_codes.rs` | (features `client,server`) every vocab enum accepts exactly the codes the generated enum accepts, with the same variant names, on both sides; `MacMods` bits |
 | `tests/it/round_trip.rs` | every vocab value round-trips through serde and its code; pinned JSON for stored forms |
 | `tests/it/receipt.rs` | receipt counts (table) and a pinned digest |
@@ -149,7 +149,9 @@ holds the frozen interface as tables (every message with its arguments, every er
   wayland-scanner's generated code.
 - **Protocol evolution:** until the user declares the protocols released, a v1 XML changes in
   place, with the server and every client updated in the same change (one `~/desktop` manifest
-  bump); no `since=` until then.
+  bump); no `since=` until then, except where a global has already grown: `quire_shell_v1` (version 4)
+  and `quire_window_manager_v1` (version 2: the `quit` event, sent only to a client that bound
+  version 2, so a version 1 client keeps working).
 - **`quire-agent-v1.xml` came from cua byte for byte**; `tests/it/xml_introspection.rs` pins its
   bytes. A change to it updates the pin in the same commit.
 - **Clean room:** the XML is written from our own design notes; every interface here is ours

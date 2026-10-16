@@ -155,7 +155,7 @@ pub const INTERFACES: &[(&str, &str, &[&str], &[&str])] = &[
             "get_window(id: new_id quire_window_v1, toplevel: xdg_toplevel)",
             "destroy() [destructor]",
         ],
-        &[],
+        &["quit()"],
     ),
     (
         "quire-window-v1.xml",

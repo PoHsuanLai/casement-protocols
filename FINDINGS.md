@@ -242,3 +242,18 @@ untouched; the new messages come last and say `since="4"`.
   `Overview::last_drag_outcome(&output)`; the shell is bound at `1..=4`. No new command.
 - Tests: the version-ordered message test now has a version 4 column, the frozen table, interface version 4, vocab codes and
   round trip for `DragOutcome`, a desktop-client reducer test. Land this first.
+
+## wave-2026-10-16/cas35-quitevent
+
+`quire_window_manager_v1` is now **version 2** (casement lane `cas35-quitevent`). Written without a compiler. `quire_window_v1`
+stays at version 1. Everything older is untouched; the new event comes last and says `since="2"`.
+
+- Event `quit()` on `quire_window_manager_v1`: the person asked the app to quit (Command-Q, the shell): save or ask, then exit
+  (macOS `applicationShouldTerminate`). It sits on the manager, the one object an app binds once, because a quit is about the
+  app and an app with no window still has the manager. No reply: the app exits, or stays; the compositor's 3 s grace and the
+  window-by-window close of an app that does nothing are described in the event text. A client bound at version 1 never receives
+  it. A client that wants it keeps a version 2 manager bound (destroying it ends the listening).
+- `desktop-client` does not bind this global (apps do), so only its `Protocol::QuireWindow` doc changed. An app listens on the
+  generated `client::quire_window_v1::quire_window_manager_v1::Event::Quit`, binding the global at `1..=2`.
+- Tests: the frozen table (`quit()`), interface versions (manager 2), `the_window_managers_quit_event_comes_last_and_says_since_2`.
+  Land this first; casement's `Event::QuitListener` and `Effect::SendQuit` depend on it.
