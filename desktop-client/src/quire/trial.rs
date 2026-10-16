@@ -28,7 +28,7 @@ impl DisplayTrial {
     }
 
     /// How long the person has.
-    pub const fn within(&self) -> Duration {
+    pub fn within(&self) -> Duration {
         Duration::from_secs(u64::from(self.seconds))
     }
 }
