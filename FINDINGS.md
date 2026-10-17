@@ -338,3 +338,11 @@ say `since="6"`.
 | --- | --- |
 | The XML does not say whether a shell that binds while a trial is open is sent `displays_trial` again (permission asks are replayed; a trial is not stated to be). If casement does not replay, a shell that restarts mid-trial never shows the question and the change reverts at the timer | Decided: replayed, with `seconds` the time left; the description says so (casement's trial lane builds it) |
 | `entries` in the XML test support does not parse an entry's `since`, so `answered_too_soon`'s `since="6"` is checked only by wayland-scanner and review | the support parser keeps entry attributes |
+
+## cp1: waking on events another thread's read queued
+
+- `DesktopClient::poll_dispatch_pending(cx)` dispatches what the queue holds and leaves `cx`'s waker in it, built on wayland-client's
+  `EventQueue::poll_dispatch_pending`. It returns how many `DesktopEvent`s it queued for `drain_events`, not how many messages it
+  dispatched (the queue call never finishes, so it gives no message count).
+- No test: it needs a live connection with a second reader, and the wire layer has no compositor harness here (see the table above).
+  sill's `desktop_quire` thread is the first user.

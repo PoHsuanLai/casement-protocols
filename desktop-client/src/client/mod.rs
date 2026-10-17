@@ -28,6 +28,8 @@ mod workspace;
 pub use error::WireError;
 pub use route::WaylandRoute;
 
+use std::task::{Context, Poll};
+
 use wayland_client::globals::registry_queue_init;
 use wayland_client::protocol::wl_surface::WlSurface;
 use wayland_client::{Connection, EventQueue};
@@ -107,6 +109,25 @@ impl DesktopClient {
     /// Processes the events already read, without blocking. Returns how many were dispatched.
     pub fn dispatch_pending(&mut self) -> Result<usize, WireError> {
         Ok(self.queue.dispatch_pending(&mut self.wire)?)
+    }
+
+    /// Processes everything queued and leaves `cx`'s waker in the queue, so it is woken when the
+    /// next event is queued. Returns how many [`DesktopEvent`]s the call added to
+    /// [`Desktop::drain_events`].
+    ///
+    /// Another thread that shares the connection can read the socket first. Its read moves this
+    /// client's events into the client's queue at once, and a caller that waits only on the
+    /// socket's descriptor and libwayland's queue never learns of them. Calling this when the
+    /// socket is readable, and again whenever the waker fires, dispatches those events on the
+    /// caller's thread. The waker must be one the caller's loop can be woken by from any thread.
+    pub fn poll_dispatch_pending(&mut self, cx: &mut Context<'_>) -> Result<usize, WireError> {
+        let before = self.wire.events.len();
+        match self.queue.poll_dispatch_pending(cx, &mut self.wire) {
+            // The queue never ends: it is empty, and the waker is left in it.
+            Poll::Pending => Ok(self.wire.events.len() - before),
+            Poll::Ready(Err(error)) => Err(error.into()),
+            Poll::Ready(Ok(never)) => match never {},
+        }
     }
 
     /// Reads from the socket and dispatches, blocking until something arrives.
