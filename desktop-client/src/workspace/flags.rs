@@ -39,41 +39,44 @@ pub enum GroupAbility {
 /// A set of values of an ordered kind; one type for flags and abilities.
 pub(crate) type Set<T> = BTreeSet<T>;
 
+/// The values of `table` whose bit is set in `bits`; unknown bits are skipped.
+fn set_of<T: Copy + Ord>(table: &[(u32, T)], bits: u32) -> Set<T> {
+    table
+        .iter()
+        .filter(|(bit, _)| bits & bit != 0)
+        .map(|(_, value)| *value)
+        .collect()
+}
+
 impl WorkspaceFlag {
     /// The states set in a `state` bitfield; unknown bits are skipped.
     pub fn set_from_bits(bits: u32) -> Set<Self> {
-        [(1, Self::Active), (2, Self::Urgent), (4, Self::Hidden)]
-            .into_iter()
-            .filter(|(bit, _)| bits & bit != 0)
-            .map(|(_, flag)| flag)
-            .collect()
+        set_of(
+            &[(1, Self::Active), (2, Self::Urgent), (4, Self::Hidden)],
+            bits,
+        )
     }
 }
 
 impl WorkspaceAbility {
     /// The abilities set in a `workspace_capabilities` bitfield; unknown bits are skipped.
     pub fn set_from_bits(bits: u32) -> Set<Self> {
-        [
-            (1, Self::Activate),
-            (2, Self::Deactivate),
-            (4, Self::Remove),
-            (8, Self::Assign),
-        ]
-        .into_iter()
-        .filter(|(bit, _)| bits & bit != 0)
-        .map(|(_, ability)| ability)
-        .collect()
+        set_of(
+            &[
+                (1, Self::Activate),
+                (2, Self::Deactivate),
+                (4, Self::Remove),
+                (8, Self::Assign),
+            ],
+            bits,
+        )
     }
 }
 
 impl GroupAbility {
     /// The abilities set in a `group_capabilities` bitfield; unknown bits are skipped.
     pub fn set_from_bits(bits: u32) -> Set<Self> {
-        [(1, Self::CreateWorkspace)]
-            .into_iter()
-            .filter(|(bit, _)| bits & bit != 0)
-            .map(|(_, ability)| ability)
-            .collect()
+        set_of(&[(1, Self::CreateWorkspace)], bits)
     }
 }
 
