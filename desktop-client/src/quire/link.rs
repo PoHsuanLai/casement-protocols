@@ -10,23 +10,12 @@ use std::collections::BTreeMap;
 
 use super::event::QuireEvent;
 use super::window::{WindowChange, WindowEvent};
-use crate::keys::ToplevelKey;
+use crate::keys::{ToplevelKey, key};
 use crate::names::ToplevelIdentifier;
 
-/// The client's number for a window object (its protocol id).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
-pub struct WindowObject(u64);
-
-impl WindowObject {
-    /// The window object with this number.
-    pub const fn new(number: u64) -> Self {
-        Self(number)
-    }
-
-    /// The number.
-    pub const fn get(self) -> u64 {
-        self.0
-    }
+key! {
+    /// The client's number for a window object (its protocol id).
+    WindowObject
 }
 
 /// An event held back until the window's handle is known.

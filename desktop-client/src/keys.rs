@@ -23,6 +23,8 @@ macro_rules! key {
     };
 }
 
+pub(crate) use key;
+
 key! {
     /// One toplevel for as long as it lives (the pairing of its two protocol handles).
     ToplevelKey
