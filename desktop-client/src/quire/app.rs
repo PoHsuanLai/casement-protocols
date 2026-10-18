@@ -1,5 +1,6 @@
 //! Apps: `quire_desktop_app_v1`.
 
+use super::lifecycle::{Entity, Lifecycle, announced};
 use crate::keys::AppKey;
 use crate::names::{AppId, AppSubject};
 use crate::toplevel::Announcement;
@@ -117,41 +118,37 @@ pub enum AppChange {
 }
 
 /// An app event.
-#[derive(Debug, Clone, PartialEq, Eq)]
-#[non_exhaustive]
-pub enum AppEvent {
-    /// An app appeared.
-    Opened(AppKey),
-    /// A property changed.
-    Changed {
-        /// The app.
-        key: AppKey,
-        /// What changed.
-        change: AppChange,
-    },
-    /// The app's burst is complete.
-    Done(AppKey),
-    /// The app ended.
-    Closed(AppKey),
-}
+pub type AppEvent = Lifecycle<AppKey, AppChange>;
 
-/// Applies `change` to `app`.
-pub(super) fn apply(app: &mut QuireApp, change: AppChange) {
-    match change {
-        AppChange::Identity {
-            id,
-            proof,
-            claimed_id,
-        } => {
-            app.id = Some(id);
-            app.proof = Some(proof);
-            app.claimed_id = claimed_id;
+impl Entity for QuireApp {
+    type Key = AppKey;
+    type Change = AppChange;
+
+    fn new(key: AppKey) -> Self {
+        QuireApp::new(key)
+    }
+
+    fn apply(&mut self, change: AppChange) {
+        match change {
+            AppChange::Identity {
+                id,
+                proof,
+                claimed_id,
+            } => {
+                self.id = Some(id);
+                self.proof = Some(proof);
+                self.claimed_id = claimed_id;
+            }
+            AppChange::Subject(subject) => self.subject = Some(subject),
+            AppChange::Life(life) => self.life = life,
+            AppChange::Visibility(visibility) => self.visibility = visibility,
+            AppChange::Menu(menu) => self.menu = menu,
+            AppChange::Attention(attention) => self.attention = attention,
+            AppChange::Mru(rank) => self.mru = Some(rank),
         }
-        AppChange::Subject(subject) => app.subject = Some(subject),
-        AppChange::Life(life) => app.life = life,
-        AppChange::Visibility(visibility) => app.visibility = visibility,
-        AppChange::Menu(menu) => app.menu = menu,
-        AppChange::Attention(attention) => app.attention = attention,
-        AppChange::Mru(rank) => app.mru = Some(rank),
+    }
+
+    fn announce(&mut self) {
+        announced(&mut self.announcement);
     }
 }

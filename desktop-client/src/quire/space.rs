@@ -1,5 +1,6 @@
 //! Spaces: `quire_desktop_space_v1`.
 
+use super::lifecycle::{Entity, Lifecycle, announced};
 use crate::keys::SpaceKey;
 use crate::names::{OutputName, SpaceId};
 use crate::toplevel::Announcement;
@@ -61,35 +62,31 @@ pub enum SpaceChange {
     Activity(SpaceActivity),
 }
 
-/// A Space event.
-#[derive(Debug, Clone, PartialEq, Eq)]
-#[non_exhaustive]
-pub enum SpaceEvent {
-    /// A Space appeared.
-    Opened(SpaceKey),
-    /// A property changed.
-    Changed {
-        /// The Space.
-        key: SpaceKey,
-        /// What changed.
-        change: SpaceChange,
-    },
-    /// The Space's burst is complete.
-    Done(SpaceKey),
-    /// The Space is gone (`removed`).
-    Removed(SpaceKey),
-}
+/// A Space event (`Closed` is the Space's `removed`).
+pub type SpaceEvent = Lifecycle<SpaceKey, SpaceChange>;
 
-/// Applies `change` to `space`.
-pub(super) fn apply(space: &mut QuireSpace, change: SpaceChange) {
-    match change {
-        SpaceChange::Id(id) => space.id = Some(id),
-        SpaceChange::Kind(kind) => space.kind = kind,
-        SpaceChange::Occupant(token) => {
-            space.occupant = Some(token).filter(|t| !t.is_empty());
+impl Entity for QuireSpace {
+    type Key = SpaceKey;
+    type Change = SpaceChange;
+
+    fn new(key: SpaceKey) -> Self {
+        QuireSpace::new(key)
+    }
+
+    fn apply(&mut self, change: SpaceChange) {
+        match change {
+            SpaceChange::Id(id) => self.id = Some(id),
+            SpaceChange::Kind(kind) => self.kind = kind,
+            SpaceChange::Occupant(token) => {
+                self.occupant = Some(token).filter(|t| !t.is_empty());
+            }
+            SpaceChange::Position(position) => self.position = position,
+            SpaceChange::Output(name) => self.output = Some(name),
+            SpaceChange::Activity(activity) => self.activity = activity,
         }
-        SpaceChange::Position(position) => space.position = position,
-        SpaceChange::Output(name) => space.output = Some(name),
-        SpaceChange::Activity(activity) => space.activity = activity,
+    }
+
+    fn announce(&mut self) {
+        announced(&mut self.announcement);
     }
 }

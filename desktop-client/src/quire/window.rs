@@ -1,5 +1,6 @@
 //! Windows: `quire_desktop_window_v1`.
 
+use super::lifecycle::{Entity, Lifecycle, announced};
 use crate::geometry::Rect;
 use crate::keys::{AppKey, SpaceKey, ToplevelKey};
 use crate::names::OutputName;
@@ -169,48 +170,44 @@ pub enum WindowChange {
     MenuPath(String),
 }
 
-/// A window event.
-#[derive(Debug, Clone, PartialEq, Eq)]
-#[non_exhaustive]
-pub enum WindowEvent {
-    /// The window object is linked to its toplevel.
-    Opened(ToplevelKey),
-    /// A property changed.
-    Changed {
-        /// The window.
-        key: ToplevelKey,
-        /// What changed.
-        change: WindowChange,
-    },
-    /// The window's burst is complete.
-    Done(ToplevelKey),
-    /// The window closed.
-    Closed(ToplevelKey),
-}
+/// A window event (`Opened` is the window object being linked to its toplevel).
+pub type WindowEvent = Lifecycle<ToplevelKey, WindowChange>;
 
-/// Applies `change` to `window`.
-pub(super) fn apply(window: &mut QuireWindow, change: WindowChange) {
-    match change {
-        WindowChange::App(app) => window.app = Some(app),
-        WindowChange::Role { role, modality } => {
-            window.role = role;
-            window.modality = modality;
+impl Entity for QuireWindow {
+    type Key = ToplevelKey;
+    type Change = WindowChange;
+
+    fn new(key: ToplevelKey) -> Self {
+        QuireWindow::new(key)
+    }
+
+    fn apply(&mut self, change: WindowChange) {
+        match change {
+            WindowChange::App(app) => self.app = Some(app),
+            WindowChange::Role { role, modality } => {
+                self.role = role;
+                self.modality = modality;
+            }
+            WindowChange::State { kind, actor } => {
+                self.state = kind;
+                self.actor = actor;
+            }
+            WindowChange::Place(place) => self.place = place,
+            WindowChange::Output(name) => self.output = Some(name),
+            WindowChange::Geometry(geometry) => self.geometry = Some(geometry),
+            WindowChange::Parent(parent) => self.parent = parent,
+            WindowChange::Emphasis(emphasis) => self.emphasis = emphasis,
+            WindowChange::Sensitivity(level) => self.sensitivity = level,
+            WindowChange::Lease(lease) => self.lease = lease,
+            WindowChange::Responsiveness(state) => self.responsiveness = state,
+            WindowChange::Placement(mark) => self.placement = mark,
+            WindowChange::MenuPath(path) => {
+                self.menu_path = Some(path).filter(|p| !p.is_empty());
+            }
         }
-        WindowChange::State { kind, actor } => {
-            window.state = kind;
-            window.actor = actor;
-        }
-        WindowChange::Place(place) => window.place = place,
-        WindowChange::Output(name) => window.output = Some(name),
-        WindowChange::Geometry(geometry) => window.geometry = Some(geometry),
-        WindowChange::Parent(parent) => window.parent = parent,
-        WindowChange::Emphasis(emphasis) => window.emphasis = emphasis,
-        WindowChange::Sensitivity(level) => window.sensitivity = level,
-        WindowChange::Lease(lease) => window.lease = lease,
-        WindowChange::Responsiveness(state) => window.responsiveness = state,
-        WindowChange::Placement(mark) => window.placement = mark,
-        WindowChange::MenuPath(path) => {
-            window.menu_path = Some(path).filter(|p| !p.is_empty());
-        }
+    }
+
+    fn announce(&mut self) {
+        announced(&mut self.announcement);
     }
 }

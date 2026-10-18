@@ -246,7 +246,7 @@ pub(super) fn on_space(
             None
         }
         Event::Removed => {
-            emit(wire, QuireEvent::Space(SpaceEvent::Removed(key)));
+            emit(wire, QuireEvent::Space(SpaceEvent::Closed(key)));
             proxy.destroy();
             wire.handles.spaces.remove(&key);
             None

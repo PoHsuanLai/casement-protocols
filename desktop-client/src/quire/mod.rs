@@ -16,6 +16,7 @@
 mod app;
 mod ask;
 mod event;
+mod lifecycle;
 mod link;
 mod project;
 mod reduce;
@@ -29,6 +30,7 @@ mod window;
 pub use app::{AppChange, AppEvent, MenuSource, QuireApp};
 pub use ask::PermissionAsk;
 pub use event::QuireEvent;
+pub use lifecycle::Lifecycle;
 pub use link::{Linker, WindowObject};
 pub use set::{Active, Quire};
 pub use shell::{

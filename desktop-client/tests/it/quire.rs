@@ -472,7 +472,7 @@ fn spaces_keep_their_order_per_output_and_a_removed_space_unplaces_its_windows()
         state.quire.space_by_id(&SpaceId::new("c")).map(|s| s.key),
         Some(sk(3))
     );
-    events.push(space(SpaceEvent::Removed(sk(1))));
+    events.push(space(SpaceEvent::Closed(sk(1))));
     let after = run(events);
     assert!(after.quire.space(sk(1)).is_none());
     assert_eq!(
