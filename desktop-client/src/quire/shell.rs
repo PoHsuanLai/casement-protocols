@@ -3,7 +3,7 @@
 //! Most are moments (a hot corner, a bell, the kill chord) and change no state; the modifiers,
 //! the switcher, the overview layout and the reveals are state the shell draws from.
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 
 use super::{DisplayTrial, PermissionAsk};
 use crate::geometry::Point;
@@ -259,11 +259,35 @@ pub struct Overview {
     pub(crate) spaces: Vec<OverviewSpaceSlot>,
     pub(crate) pending_slots: Vec<OverviewSlot>,
     pub(crate) pending_spaces: Vec<OverviewSpaceSlot>,
-    pub(crate) outputs: BTreeMap<OutputName, Shown>,
-    pub(crate) drop_targets: BTreeMap<OutputName, SpaceId>,
-    pub(crate) over_new: BTreeSet<OutputName>,
-    pub(crate) drags: BTreeMap<OutputName, ToplevelIdentifier>,
-    pub(crate) last_outcome: BTreeMap<OutputName, DragOutcome>,
+    /// What is known per output; an output with nothing known has no entry.
+    pub(crate) per_output: BTreeMap<OutputName, OutputOverview>,
+}
+
+/// What the overview knows about one output.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct OutputOverview {
+    /// Whether Mission Control is up there; `None` before the first `OverviewOutput`.
+    shown: Option<Shown>,
+    /// The Space target the dragged window is over.
+    drop_target: Option<SpaceId>,
+    /// Whether the dragged window is over the new-Space target.
+    over_new: Shown,
+    /// The window being dragged.
+    drag: Option<ToplevelIdentifier>,
+    /// How the last drag ended.
+    last_outcome: Option<DragOutcome>,
+}
+
+impl Default for OutputOverview {
+    fn default() -> Self {
+        Self {
+            shown: None,
+            drop_target: None,
+            over_new: Shown::Hidden,
+            drag: None,
+            last_outcome: None,
+        }
+    }
 }
 
 impl Default for Overview {
@@ -276,11 +300,7 @@ impl Default for Overview {
             spaces: Vec::new(),
             pending_slots: Vec::new(),
             pending_spaces: Vec::new(),
-            outputs: BTreeMap::new(),
-            drop_targets: BTreeMap::new(),
-            over_new: BTreeSet::new(),
-            drags: BTreeMap::new(),
-            last_outcome: BTreeMap::new(),
+            per_output: BTreeMap::new(),
         }
     }
 }
@@ -315,31 +335,52 @@ impl Overview {
     /// version 1) every output counts as shown while the overview is not closed, as it always
     /// was.
     pub fn shown_on(&self, output: &OutputName) -> bool {
-        match self.outputs.get(output) {
-            Some(shown) => *shown == Shown::Shown,
-            None => self.outputs.is_empty() && self.state != OverviewState::Closed,
+        match self.per_output.get(output).and_then(|known| known.shown) {
+            Some(shown) => shown == Shown::Shown,
+            None => {
+                self.per_output.values().all(|known| known.shown.is_none())
+                    && self.state != OverviewState::Closed
+            }
         }
     }
 
     /// The Space target the dragged window is over on `output`, if any.
     pub fn drop_target(&self, output: &OutputName) -> Option<&SpaceId> {
-        self.drop_targets.get(output)
+        self.per_output
+            .get(output)
+            .and_then(|known| known.drop_target.as_ref())
     }
 
     /// Whether the dragged window is over the new-Space target of `output` (version 3).
     pub fn over_new_space(&self, output: &OutputName) -> bool {
-        self.over_new.contains(output)
+        self.per_output
+            .get(output)
+            .is_some_and(|known| known.over_new == Shown::Shown)
     }
 
     /// The window being dragged on `output` in Mission Control, if a drag is under way
     /// (version 4). While there is one, the Spaces bar shows its targets as accepting.
     pub fn dragged_window(&self, output: &OutputName) -> Option<&ToplevelIdentifier> {
-        self.drags.get(output)
+        self.per_output
+            .get(output)
+            .and_then(|known| known.drag.as_ref())
     }
 
     /// How the last drag on `output` ended, until the next one starts (version 4).
     pub fn last_drag_outcome(&self, output: &OutputName) -> Option<DragOutcome> {
-        self.last_outcome.get(output).copied()
+        self.per_output
+            .get(output)
+            .and_then(|known| known.last_outcome)
+    }
+
+    /// `change` made to what is known of `output`; an output with nothing left known has no
+    /// entry.
+    fn update(&mut self, output: OutputName, change: impl FnOnce(&mut OutputOverview)) {
+        let mut known = self.per_output.remove(&output).unwrap_or_default();
+        change(&mut known);
+        if known != OutputOverview::default() {
+            self.per_output.insert(output, known);
+        }
     }
 }
 
@@ -422,31 +463,31 @@ pub(super) fn reduce_shell(mut shell: Shell, event: ShellEvent) -> Shell {
                 .push(OverviewSpaceSlot { space, rect });
         }
         ShellEvent::OverviewOutput { output, shown } => {
-            shell.overview.outputs.insert(output, shown);
+            shell
+                .overview
+                .update(output, |known| known.shown = Some(shown));
         }
-        ShellEvent::DropTarget { output, space } => match space {
-            Some(space) => {
-                shell.overview.drop_targets.insert(output, space);
-            }
-            None => {
-                shell.overview.drop_targets.remove(&output);
-            }
-        },
+        ShellEvent::DropTarget { output, space } => {
+            shell
+                .overview
+                .update(output, |known| known.drop_target = space);
+        }
         ShellEvent::DropTargetNew { output, over } => {
-            match over {
-                Shown::Shown => shell.overview.over_new.insert(output),
-                _ => shell.overview.over_new.remove(&output),
-            };
+            shell.overview.update(output, |known| known.over_new = over);
         }
         ShellEvent::WindowDragBegin { output, window } => {
-            shell.overview.last_outcome.remove(&output);
-            shell.overview.drags.insert(output, window);
+            shell.overview.update(output, |known| {
+                known.last_outcome = None;
+                known.drag = Some(window);
+            });
         }
         ShellEvent::WindowDragEnd {
             output, outcome, ..
         } => {
-            shell.overview.drags.remove(&output);
-            shell.overview.last_outcome.insert(output, outcome);
+            shell.overview.update(output, |known| {
+                known.drag = None;
+                known.last_outcome = Some(outcome);
+            });
         }
         ShellEvent::OverviewDone => {
             shell.overview.slots = std::mem::take(&mut shell.overview.pending_slots);
