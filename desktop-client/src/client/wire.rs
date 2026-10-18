@@ -7,6 +7,7 @@ use super::handles::Handles;
 use super::pairing::Book;
 use crate::config::DesktopConfig;
 use crate::event::DesktopEvent;
+use crate::keys::Mint;
 use crate::names::OutputName;
 use crate::quire::Linker;
 use crate::state::DesktopState;
@@ -24,7 +25,7 @@ pub(super) struct Wire {
     pub(super) linker: Linker,
     pub(super) config: DesktopConfig,
     pub(super) qh: QueueHandle<Wire>,
-    next: u64,
+    mint: Mint,
 }
 
 impl Wire {
@@ -38,7 +39,7 @@ impl Wire {
             linker: Linker::default(),
             config,
             qh,
-            next: 1,
+            mint: Mint::default(),
         }
     }
 
@@ -60,9 +61,7 @@ impl Wire {
     /// A number no earlier call returned, for the ids this client makes (configurations,
     /// captures, surfaces).
     pub(super) fn mint(&mut self) -> u64 {
-        let number = self.next;
-        self.next += 1;
-        number
+        self.mint.fresh()
     }
 }
 

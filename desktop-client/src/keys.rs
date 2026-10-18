@@ -3,6 +3,26 @@
 //! The core holds no proxy. The wire layer hands out a key when an object appears and keeps
 //! the key-to-proxy map, so state is plain data and a command names its target by key.
 
+/// Hands out the numbers for ids this client makes (configurations, captures, surfaces): each
+/// call returns a number no earlier call returned.
+#[derive(Debug)]
+pub(crate) struct Mint(u64);
+
+impl Default for Mint {
+    fn default() -> Self {
+        Self(1)
+    }
+}
+
+impl Mint {
+    /// The next number.
+    pub(crate) fn fresh(&mut self) -> u64 {
+        let number = self.0;
+        self.0 += 1;
+        number
+    }
+}
+
 macro_rules! key {
     ($(#[$doc:meta])* $name:ident) => {
         $(#[$doc])*

@@ -8,7 +8,7 @@ use crate::config::DesktopConfig;
 use crate::desktop::Desktop;
 use crate::error::CommandError;
 use crate::event::DesktopEvent;
-use crate::keys::{CaptureId, ConfigId};
+use crate::keys::{CaptureId, ConfigId, Mint};
 use crate::protocol::ProtocolSet;
 use crate::quire::check_targets;
 use crate::reduce::reduce;
@@ -28,7 +28,7 @@ pub struct FakeDesktop {
     script: VecDeque<DesktopEvent>,
     applied: Vec<DesktopEvent>,
     sent: Vec<DesktopCommand>,
-    next_id: u64,
+    mint: Mint,
 }
 
 impl FakeDesktop {
@@ -62,7 +62,7 @@ impl FakeDesktop {
             script: VecDeque::new(),
             applied: Vec::new(),
             sent: Vec::new(),
-            next_id: 1,
+            mint: Mint::default(),
         }
     }
 
@@ -100,9 +100,7 @@ impl FakeDesktop {
     }
 
     fn mint(&mut self) -> u64 {
-        let id = self.next_id;
-        self.next_id += 1;
-        id
+        self.mint.fresh()
     }
 }
 
