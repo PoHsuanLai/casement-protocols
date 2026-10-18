@@ -12,7 +12,7 @@ use crate::keys::SurfaceKey;
 use crate::names::{AppId, OutputName, SpaceId, ToplevelIdentifier};
 use casement_protocols::vocab::{
     AskId, Corner, DragOutcome, KeyGesture, MacMods, OverviewMode, OverviewState, ScreenEdge,
-    Shown, SplitSide, TrialId,
+    Shown, SplitSide, TrialId, WindowEntries,
 };
 
 /// One event of `quire_shell_v1`.
@@ -100,8 +100,8 @@ pub enum ShellEvent {
         window: ToplevelIdentifier,
         /// Where the menu's top left goes, in global logical pixels.
         at: Point,
-        /// A bit per `WindowEntry` code, set when the entry can be picked.
-        enabled: u32,
+        /// The entries that can be picked now.
+        enabled: WindowEntries,
     },
     /// A window went full screen on one half; the shell offers the windows of the
     /// `SplitCandidate` events that follow for the other half. Starts a [`SplitChoice`].

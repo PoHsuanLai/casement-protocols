@@ -7,7 +7,8 @@ use casement_protocols::vocab::{
     ActorKind, AppLifeKind, AppVisibility, AskId, Attention, Corner, DragOutcome, Emphasis,
     GlowCode, KeyGesture, LeaseState, MacMods, Memory, MenuSourceKind, Modality, OverviewMode,
     OverviewState, PlacementMark, Power, ProofKind, Responsiveness, ScreenEdge, SensitivityLevel,
-    Shown, SpaceActivity, SpaceKind, SplitSide, SubjectKind, TrialId, WindowRole, WindowStateKind,
+    Shown, SpaceActivity, SpaceKind, SplitSide, SubjectKind, TrialId, WindowEntries, WindowRole,
+    WindowStateKind,
 };
 use desktop_client::quire::{
     AppChange, AppEvent, DisplayTrial, Lease, Linker, MenuSource, PermissionAsk, QuireEvent,
@@ -828,7 +829,7 @@ fn moments_change_no_state() {
         ShellEvent::WindowMenu {
             window: ToplevelIdentifier::new("w-1"),
             at: desktop_client::Point::new(40, 52),
-            enabled: 0b11,
+            enabled: WindowEntries::from_bits(0b11),
         },
         ShellEvent::PermissionAsk(PermissionAsk::new(
             AskId::new(1),

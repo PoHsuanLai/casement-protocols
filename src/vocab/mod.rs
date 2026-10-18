@@ -28,7 +28,7 @@ pub use receipt::{ReceiptCounts, ReceiptDigest, ReceiptItem, receipt_counts, rec
 pub use sensitive::SensitivityLevel;
 pub use shell::{
     Corner, DragOutcome, KeyGesture, OverviewMode, OverviewState, ScreenEdge, ShellRole, Shown,
-    SplitSide, WindowEntry,
+    SplitSide, WindowEntries, WindowEntry,
 };
 pub use space::{SpaceActivity, SpaceKind};
 pub use trial::{TrialAnswer, TrialId};

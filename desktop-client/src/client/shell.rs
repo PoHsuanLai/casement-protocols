@@ -4,7 +4,7 @@ use wayland_client::protocol::wl_surface::WlSurface;
 use wayland_client::{Connection, Dispatch, QueueHandle};
 
 use casement_protocols::client::quire_shell_v1::quire_shell_v1::{self, QuireShellV1};
-use casement_protocols::vocab::{AskId, MacMods, TrialId};
+use casement_protocols::vocab::{AskId, MacMods, TrialId, WindowEntries};
 
 use super::wire::{Wire, raw, vocab};
 use crate::event::DesktopEvent;
@@ -86,7 +86,7 @@ fn translate(wire: &Wire, event: quire_shell_v1::Event) -> Option<ShellEvent> {
         } => ShellEvent::WindowMenu {
             window: ToplevelIdentifier::new(toplevel),
             at: Point::new(x, y),
-            enabled,
+            enabled: WindowEntries::from_bits(enabled),
         },
         Event::SplitChoose { first, side } => ShellEvent::SplitChoose {
             first: ToplevelIdentifier::new(first),

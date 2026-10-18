@@ -1,6 +1,7 @@
 //! Shell vocabulary: `quire_shell_v1`'s enums (its modifier bitfield is `MacMods`).
 
-use super::code::wire_enum;
+use super::code::{WireCode, wire_enum};
+use std::collections::BTreeSet;
 
 wire_enum! {
     /// What a shell surface is (`quire_shell_v1.shell_role`).
@@ -141,6 +142,48 @@ wire_enum! {
         Fill = 13,
         /// Center.
         Centre = 14,
+    }
+}
+
+/// The entries of a window's menu that can be picked now (`quire_shell_v1.window_menu`'s
+/// `enabled`, a bit per [`WindowEntry`] code on the wire).
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct WindowEntries(BTreeSet<WindowEntry>);
+
+impl WindowEntries {
+    /// The entries the wire bit set `bits` offers; a bit no entry has is dropped.
+    ///
+    /// ```
+    /// use casement_protocols::vocab::{WindowEntries, WindowEntry};
+    ///
+    /// let offered = WindowEntries::from_bits(0b101);
+    /// assert!(offered.contains(WindowEntry::EnterFullScreen));
+    /// assert!(!offered.contains(WindowEntry::ExitFullScreen));
+    /// assert!(offered.contains(WindowEntry::Left));
+    /// ```
+    pub fn from_bits(bits: u32) -> WindowEntries {
+        WindowEntries(
+            WindowEntry::ALL
+                .iter()
+                .copied()
+                .filter(|entry| {
+                    1_u32
+                        .checked_shl(entry.code())
+                        .is_some_and(|bit| bits & bit != 0)
+                })
+                .collect(),
+        )
+    }
+
+    /// Whether `entry` can be picked.
+    pub fn contains(&self, entry: WindowEntry) -> bool {
+        self.0.contains(&entry)
+    }
+}
+
+impl FromIterator<WindowEntry> for WindowEntries {
+    fn from_iter<I: IntoIterator<Item = WindowEntry>>(entries: I) -> WindowEntries {
+        WindowEntries(entries.into_iter().collect())
     }
 }
 
