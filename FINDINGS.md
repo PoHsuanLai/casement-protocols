@@ -346,3 +346,16 @@ say `since="6"`.
   dispatched (the queue call never finishes, so it gives no message count).
 - No test: it needs a live connection with a second reader, and the wire layer has no compositor harness here (see the table above).
   sill's `desktop_quire` thread is the first user.
+
+## Type audit wave 2 (2026-10-18)
+
+- **`CommandKind` is gone.** `DesktopCommand::route()` returns a `CommandRoute` (the one exhaustive match); `requires_on`,
+  `carries` and the dispatch in `client/commands.rs` read it, and `CommandError::{Unsupported, NotBound}` carry the route, not the
+  command, so their text says "a QuireShell command needs ...". `check_targets` and `quire_commands::send` name every variant.
+  `toplevel()` and `workspace()` in `client/commands.rs` still end in `_ => {}`: they are reached only for their own routes.
+- **`Lifecycle<K, C>`.** `AppEvent`, `SpaceEvent` and `WindowEvent` are aliases of one generic event and one `reduce_entity`; a
+  Space's `Removed` is `Closed`.
+- **`WindowEntries`.** `ShellEvent::WindowMenu.enabled` is a set of `WindowEntry` built once from the wire bit mask (vocab).
+- **`Overview`** keeps an `OutputOverview` per output; an output with nothing known has no entry, so equality is as it was.
+- Not done: F8 (`Stage` is the borrow workaround for `CapturePhase::Ready(Frame)`, nothing to gain without a compiler); F9 kept:
+  `requires` has four uses in `tests/it/protocol.rs` and is public.
