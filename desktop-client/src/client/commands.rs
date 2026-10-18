@@ -129,7 +129,7 @@ fn fullscreen(
 ) -> Result<(), CommandError> {
     if handle.version() < zwlr_foreign_toplevel_handle_v1::REQ_SET_FULLSCREEN_SINCE {
         return Err(CommandError::Unsupported {
-            command: crate::command::CommandKind::Fullscreen,
+            route: crate::command::CommandRoute::Toplevel,
             needs: crate::protocol::Protocol::WlrForeignToplevelManagement,
         });
     }

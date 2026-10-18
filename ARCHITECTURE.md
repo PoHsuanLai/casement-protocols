@@ -215,9 +215,9 @@ caller says it holds the shell role (`DesktopConfig::holding_shell()`); `admit` 
 the environment or handed over (`client::WaylandRoute::{Environment, Handed(OwnedFd)}`, the
 shape of shell-host's own `WaylandRoute`).
 
-**Recipe: a new Quire command.** Add the variant and its `CommandKind` (`command.rs`), its
-protocols in `requires_on` (`supports.rs`), its target check in `quire::check_targets`, its
-request in `client/quire_commands.rs` (`carries` and `send`), then a row in
+**Recipe: a new Quire command.** Add the variant and its `CommandRoute` (`DesktopCommand::route` in
+`command.rs`, which `requires_on` and `carries` read), its target check in
+`quire::check_targets`, its request in `client/quire_commands.rs` (`send`), then a row in
 `tests/it/protocol.rs` `quire_only` and a fake test. **A new Quire event:** the variant in the
 object's `…Change`/`…Event`, its row in `quire/<object>.rs` `apply`, the dispatch in
 `client/quire.rs` (or `client/shell.rs`), and a table row in `tests/it/quire.rs`.

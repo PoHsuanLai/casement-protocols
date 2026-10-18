@@ -34,14 +34,14 @@ pub fn admit(
 ) -> Result<(), CommandError> {
     if let Some(needs) = missing(offered, command) {
         return Err(CommandError::Unsupported {
-            command: command.kind(),
+            route: command.route(),
             needs,
         });
     }
     let needs_shell = requires_on(backend_for(offered), command).contains(&Protocol::QuireShell);
     if needs_shell && config.shell == ShellBinding::Skip {
         return Err(CommandError::NotBound {
-            command: command.kind(),
+            route: command.route(),
             needs: Protocol::QuireShell,
         });
     }

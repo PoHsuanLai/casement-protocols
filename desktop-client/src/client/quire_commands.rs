@@ -13,7 +13,7 @@ use casement_protocols::client::quire_shell_v1::quire_shell_v1::QuireShellV1;
 use casement_protocols::vocab::{PlaceTarget, Toggle, WireCode};
 
 use super::wire::Wire;
-use crate::command::{CommandKind, DesktopCommand};
+use crate::command::{CommandRoute, DesktopCommand};
 use crate::error::CommandError;
 use crate::keys::{AppKey, SpaceKey, SurfaceKey, ToplevelKey};
 use crate::names::OutputName;
@@ -22,45 +22,10 @@ use crate::protocol::Protocol;
 /// Whether `command` goes to the Quire objects: the Quire-only commands always, the plain window
 /// commands and the minimise target when the offer chose the Quire arm.
 pub(super) fn carries(command: &DesktopCommand, quire_arm: bool) -> bool {
-    match command {
-        DesktopCommand::Activate(_)
-        | DesktopCommand::Close(_)
-        | DesktopCommand::Minimise(_)
-        | DesktopCommand::Unminimise(_)
-        | DesktopCommand::Maximise(_)
-        | DesktopCommand::Unmaximise(_)
-        | DesktopCommand::Fullscreen { .. }
-        | DesktopCommand::Unfullscreen(_)
-        | DesktopCommand::SetMinimiseTarget { .. } => quire_arm,
-        DesktopCommand::Place { .. }
-        | DesktopCommand::MoveToSpace { .. }
-        | DesktopCommand::AssignSpaces { .. }
-        | DesktopCommand::ClearMinimiseTarget(_)
-        | DesktopCommand::ActivateSpace(_)
-        | DesktopCommand::RemoveSpace(_)
-        | DesktopCommand::MoveSpace { .. }
-        | DesktopCommand::CreateSpace { .. }
-        | DesktopCommand::ActivateApp(_)
-        | DesktopCommand::HideApp(_)
-        | DesktopCommand::UnhideApp(_)
-        | DesktopCommand::HideOtherApps(_)
-        | DesktopCommand::QuitApp(_)
-        | DesktopCommand::ForceQuitApp(_)
-        | DesktopCommand::ReopenApp(_)
-        | DesktopCommand::SetShellRole { .. }
-        | DesktopCommand::PickSwitcher(_)
-        | DesktopCommand::CancelSwitcher
-        | DesktopCommand::Overview { .. }
-        | DesktopCommand::ShowDesktop(_)
-        | DesktopCommand::PickWindowMenu { .. }
-        | DesktopCommand::PickSplit(_)
-        | DesktopCommand::CancelSplit
-        | DesktopCommand::DivideSplit { .. }
-        | DesktopCommand::SetSpaceTargets { .. }
-        | DesktopCommand::SetNewSpaceTarget { .. }
-        | DesktopCommand::AnswerPermission { .. }
-        | DesktopCommand::AnswerTrial { .. } => true,
-        _ => false,
+    match command.route() {
+        CommandRoute::Toplevel | CommandRoute::MinimiseTarget => quire_arm,
+        CommandRoute::QuireWindow | CommandRoute::QuireDesktop | CommandRoute::QuireShell => true,
+        CommandRoute::Workspace | CommandRoute::Output | CommandRoute::Capture => false,
     }
 }
 
@@ -90,22 +55,22 @@ fn space(wire: &Wire, key: SpaceKey) -> Result<&QuireDesktopSpaceV1, CommandErro
         .ok_or(CommandError::UnknownSpace(key))
 }
 
-fn manager(wire: &Wire, kind: CommandKind) -> Result<&QuireDesktopManagerV1, CommandError> {
+fn manager(wire: &Wire, route: CommandRoute) -> Result<&QuireDesktopManagerV1, CommandError> {
     wire.handles
         .quire_manager
         .as_ref()
         .ok_or(CommandError::Unsupported {
-            command: kind,
+            route,
             needs: Protocol::QuireDesktop,
         })
 }
 
-fn shell(wire: &Wire, kind: CommandKind) -> Result<&QuireShellV1, CommandError> {
+fn shell(wire: &Wire, route: CommandRoute) -> Result<&QuireShellV1, CommandError> {
     wire.handles
         .quire_shell
         .as_ref()
         .ok_or(CommandError::NotBound {
-            command: kind,
+            route,
             needs: Protocol::QuireShell,
         })
 }
@@ -148,7 +113,7 @@ fn identifier(wire: &Wire, key: ToplevelKey) -> Result<String, CommandError> {
 /// Activation passes serial 0: the Quire arm's client is the shell, which the compositor trusts
 /// to activate without an input serial (FINDINGS).
 pub(super) fn send(wire: &Wire, command: DesktopCommand) -> Result<(), CommandError> {
-    let kind = command.kind();
+    let route = command.route();
     match command {
         DesktopCommand::Activate(key) => window(wire, key)?.activate(seat(wire)?, 0),
         DesktopCommand::Close(key) => window(wire, key)?.close(),
@@ -168,7 +133,7 @@ pub(super) fn send(wire: &Wire, command: DesktopCommand) -> Result<(), CommandEr
             toplevel,
             surface: key,
             rect,
-        } => shell(wire, kind)?.set_minimise_target(
+        } => shell(wire, route)?.set_minimise_target(
             surface(wire, key)?,
             identifier(wire, toplevel)?,
             rect.x,
@@ -177,7 +142,7 @@ pub(super) fn send(wire: &Wire, command: DesktopCommand) -> Result<(), CommandEr
             rect.h,
         ),
         DesktopCommand::ClearMinimiseTarget(key) => {
-            shell(wire, kind)?.clear_minimise_target(identifier(wire, key)?);
+            shell(wire, route)?.clear_minimise_target(identifier(wire, key)?);
         }
         DesktopCommand::Place { toplevel, target } => {
             window(wire, toplevel)?.place(generated(target)?);
@@ -196,7 +161,7 @@ pub(super) fn send(wire: &Wire, command: DesktopCommand) -> Result<(), CommandEr
             position,
         } => space(wire, key)?.move_to(position),
         DesktopCommand::CreateSpace { output: name } => {
-            manager(wire, kind)?.create_space(output(wire, &name)?);
+            manager(wire, route)?.create_space(output(wire, &name)?);
         }
         DesktopCommand::ActivateApp(key) => app(wire, key)?.activate(seat(wire)?, 0),
         DesktopCommand::HideApp(key) => app(wire, key)?.hide(),
@@ -206,32 +171,32 @@ pub(super) fn send(wire: &Wire, command: DesktopCommand) -> Result<(), CommandEr
         DesktopCommand::ForceQuitApp(key) => app(wire, key)?.force_quit(),
         DesktopCommand::ReopenApp(key) => app(wire, key)?.reopen(),
         DesktopCommand::SetShellRole { surface: key, role } => {
-            shell(wire, kind)?.set_role(surface(wire, key)?, generated(role)?);
+            shell(wire, route)?.set_role(surface(wire, key)?, generated(role)?);
         }
-        DesktopCommand::PickSwitcher(index) => shell(wire, kind)?.switcher_pick(index),
-        DesktopCommand::CancelSwitcher => shell(wire, kind)?.switcher_cancel(),
+        DesktopCommand::PickSwitcher(index) => shell(wire, route)?.switcher_pick(index),
+        DesktopCommand::CancelSwitcher => shell(wire, route)?.switcher_cancel(),
         DesktopCommand::Overview { mode, toggle } => {
-            shell(wire, kind)?.overview(generated(mode)?, generated(toggle)?);
+            shell(wire, route)?.overview(generated(mode)?, generated(toggle)?);
         }
-        DesktopCommand::ShowDesktop(toggle) => shell(wire, kind)?.show_desktop(generated(toggle)?),
+        DesktopCommand::ShowDesktop(toggle) => shell(wire, route)?.show_desktop(generated(toggle)?),
         DesktopCommand::PickWindowMenu { window, entry } => {
-            shell(wire, kind)?.window_menu_pick(window.as_str().to_owned(), generated(entry)?);
+            shell(wire, route)?.window_menu_pick(window.as_str().to_owned(), generated(entry)?);
         }
         DesktopCommand::PickSplit(window) => {
-            shell(wire, kind)?.split_pick(window.as_str().to_owned())
+            shell(wire, route)?.split_pick(window.as_str().to_owned())
         }
-        DesktopCommand::CancelSplit => shell(wire, kind)?.split_cancel(),
+        DesktopCommand::CancelSplit => shell(wire, route)?.split_cancel(),
         DesktopCommand::DivideSplit { window, share } => {
-            shell(wire, kind)?.split_divide(window.as_str().to_owned(), share);
+            shell(wire, route)?.split_divide(window.as_str().to_owned(), share);
         }
         DesktopCommand::SetSpaceTargets {
             output: name,
             targets,
         } => {
-            let shell = shell(wire, kind)?;
+            let shell = shell(wire, route)?;
             if shell.version() < 2 {
                 return Err(CommandError::NotBound {
-                    command: kind,
+                    route,
                     needs: Protocol::QuireShell,
                 });
             }
@@ -250,10 +215,10 @@ pub(super) fn send(wire: &Wire, command: DesktopCommand) -> Result<(), CommandEr
             }
         }
         DesktopCommand::SetNewSpaceTarget { output: name, rect } => {
-            let shell = shell(wire, kind)?;
+            let shell = shell(wire, route)?;
             if shell.version() < 3 {
                 return Err(CommandError::NotBound {
-                    command: kind,
+                    route,
                     needs: Protocol::QuireShell,
                 });
             }
@@ -263,26 +228,35 @@ pub(super) fn send(wire: &Wire, command: DesktopCommand) -> Result<(), CommandEr
             shell.space_target_new(output, rect.x, rect.y, rect.w, rect.h);
         }
         DesktopCommand::AnswerPermission { ask, answer } => {
-            let shell = shell(wire, kind)?;
+            let shell = shell(wire, route)?;
             if shell.version() < 5 {
                 return Err(CommandError::NotBound {
-                    command: kind,
+                    route,
                     needs: Protocol::QuireShell,
                 });
             }
             shell.permission_answer(ask.get(), generated(answer)?);
         }
         DesktopCommand::AnswerTrial { trial, answer } => {
-            let shell = shell(wire, kind)?;
+            let shell = shell(wire, route)?;
             if shell.version() < 6 {
                 return Err(CommandError::NotBound {
-                    command: kind,
+                    route,
                     needs: Protocol::QuireShell,
                 });
             }
             shell.displays_trial_answer(trial.get(), generated(answer)?);
         }
-        _ => {}
+        // Another family's: `carries` keeps these out of here.
+        DesktopCommand::ActivateWorkspace(_)
+        | DesktopCommand::DeactivateWorkspace(_)
+        | DesktopCommand::AssignWorkspace { .. }
+        | DesktopCommand::RemoveWorkspace(_)
+        | DesktopCommand::CreateWorkspace { .. }
+        | DesktopCommand::CommitWorkspaces
+        | DesktopCommand::ApplyOutputs(_)
+        | DesktopCommand::TestOutputs(_)
+        | DesktopCommand::CaptureOutput(_) => {}
     }
     Ok(())
 }

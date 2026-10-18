@@ -1,7 +1,7 @@
 //! Whether the offered protocols can carry a command.
 
 use crate::backend::{DesktopBackend, backend_for};
-use crate::command::DesktopCommand;
+use crate::command::{CommandRoute, DesktopCommand};
 use crate::protocol::{Protocol, ProtocolSet};
 
 /// The answer of [`supports`].
@@ -52,55 +52,20 @@ pub fn requires_on(
     use Protocol::*;
     let quire = backend == Some(DesktopBackend::Quire);
     let by_arm = |on_quire: &'static [Protocol]| if quire { on_quire } else { WLR_TOPLEVEL };
-    match command {
-        DesktopCommand::Activate(_)
-        | DesktopCommand::Close(_)
-        | DesktopCommand::Minimise(_)
-        | DesktopCommand::Unminimise(_)
-        | DesktopCommand::Maximise(_)
-        | DesktopCommand::Unmaximise(_)
-        | DesktopCommand::Fullscreen { .. }
-        | DesktopCommand::Unfullscreen(_) => by_arm(QUIRE_WINDOW),
-        DesktopCommand::SetMinimiseTarget { .. } => by_arm(QUIRE_SHELL),
-        DesktopCommand::ActivateWorkspace(_)
-        | DesktopCommand::DeactivateWorkspace(_)
-        | DesktopCommand::AssignWorkspace { .. }
-        | DesktopCommand::RemoveWorkspace(_)
-        | DesktopCommand::CreateWorkspace { .. }
-        | DesktopCommand::CommitWorkspaces => &[ExtWorkspace],
-        DesktopCommand::ApplyOutputs(_) | DesktopCommand::TestOutputs(_) => &[WlrOutputManagement],
-        DesktopCommand::CaptureOutput(request) if request.space.is_some() => {
-            &[ExtImageCopyCapture, QuireShell]
-        }
-        DesktopCommand::CaptureOutput(_) => &[ExtImageCopyCapture, ExtOutputImageCaptureSource],
-        DesktopCommand::Place { .. }
-        | DesktopCommand::MoveToSpace { .. }
-        | DesktopCommand::AssignSpaces { .. } => QUIRE_WINDOW,
-        DesktopCommand::ActivateSpace(_)
-        | DesktopCommand::RemoveSpace(_)
-        | DesktopCommand::MoveSpace { .. }
-        | DesktopCommand::CreateSpace { .. }
-        | DesktopCommand::ActivateApp(_)
-        | DesktopCommand::HideApp(_)
-        | DesktopCommand::UnhideApp(_)
-        | DesktopCommand::HideOtherApps(_)
-        | DesktopCommand::QuitApp(_)
-        | DesktopCommand::ForceQuitApp(_)
-        | DesktopCommand::ReopenApp(_) => QUIRE_DESKTOP,
-        DesktopCommand::ClearMinimiseTarget(_)
-        | DesktopCommand::SetShellRole { .. }
-        | DesktopCommand::PickSwitcher(_)
-        | DesktopCommand::CancelSwitcher
-        | DesktopCommand::Overview { .. }
-        | DesktopCommand::ShowDesktop(_)
-        | DesktopCommand::PickWindowMenu { .. }
-        | DesktopCommand::PickSplit(_)
-        | DesktopCommand::CancelSplit
-        | DesktopCommand::DivideSplit { .. }
-        | DesktopCommand::SetSpaceTargets { .. }
-        | DesktopCommand::SetNewSpaceTarget { .. }
-        | DesktopCommand::AnswerPermission { .. }
-        | DesktopCommand::AnswerTrial { .. } => QUIRE_SHELL,
+    match command.route() {
+        CommandRoute::Toplevel => by_arm(QUIRE_WINDOW),
+        CommandRoute::MinimiseTarget => by_arm(QUIRE_SHELL),
+        CommandRoute::Workspace => &[ExtWorkspace],
+        CommandRoute::Output => &[WlrOutputManagement],
+        CommandRoute::Capture => match command {
+            DesktopCommand::CaptureOutput(request) if request.space.is_some() => {
+                &[ExtImageCopyCapture, QuireShell]
+            }
+            _ => &[ExtImageCopyCapture, ExtOutputImageCaptureSource],
+        },
+        CommandRoute::QuireWindow => QUIRE_WINDOW,
+        CommandRoute::QuireDesktop => QUIRE_DESKTOP,
+        CommandRoute::QuireShell => QUIRE_SHELL,
     }
 }
 

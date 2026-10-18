@@ -12,7 +12,7 @@ use wayland_protocols_wlr::output_management::v1::client::{
 
 use super::error::WireError;
 use super::wire::{Wire, number_of, raw};
-use crate::command::CommandKind;
+use crate::command::CommandRoute;
 use crate::error::CommandError;
 use crate::event::DesktopEvent;
 use crate::geometry::{Point, Size};
@@ -198,16 +198,12 @@ pub(super) fn submit(
         .outputs
         .serial()
         .ok_or(CommandError::Config(ConfigError::NotSettled))?;
-    let command = match purpose {
-        ConfigPurpose::Apply => CommandKind::ApplyOutputs,
-        ConfigPurpose::Test => CommandKind::TestOutputs,
-    };
     let manager = wire
         .handles
         .output_manager
         .clone()
         .ok_or(CommandError::Unsupported {
-            command,
+            route: CommandRoute::Output,
             needs: Protocol::WlrOutputManagement,
         })?;
     let parts = complete(config, &wire.state.outputs);

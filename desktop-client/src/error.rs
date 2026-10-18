@@ -1,6 +1,6 @@
 //! Why a command cannot be sent.
 
-use crate::command::CommandKind;
+use crate::command::CommandRoute;
 use crate::keys::{AppKey, GroupKey, SpaceKey, SurfaceKey, ToplevelKey, WorkspaceKey};
 use crate::names::OutputName;
 use crate::output::ConfigError;
@@ -11,19 +11,19 @@ use crate::protocol::Protocol;
 #[non_exhaustive]
 pub enum CommandError {
     /// The compositor did not offer a protocol the command needs.
-    #[error("{command:?} needs {needs}, which the compositor does not offer")]
+    #[error("a {route:?} command needs {needs}, which the compositor does not offer")]
     Unsupported {
-        /// The command.
-        command: CommandKind,
+        /// The family the command belongs to.
+        route: CommandRoute,
         /// The first missing protocol.
         needs: Protocol,
     },
     /// The compositor offers a protocol the command needs, but this client was not asked to bind
     /// it (see [`crate::DesktopConfig`]).
-    #[error("{command:?} needs {needs}, which this client did not bind")]
+    #[error("a {route:?} command needs {needs}, which this client did not bind")]
     NotBound {
-        /// The command.
-        command: CommandKind,
+        /// The family the command belongs to.
+        route: CommandRoute,
         /// The protocol that is offered and not bound.
         needs: Protocol,
     },

@@ -59,7 +59,40 @@ pub fn check_targets(state: &DesktopState, command: &DesktopCommand) -> Result<(
             .app(*app)
             .map(|_| ())
             .ok_or(CommandError::UnknownApp(*app)),
-        _ => Ok(()),
+        // No target of the Quire state to look for (the minimise target's identifier is only
+        // checked on the Quire arm, above).
+        DesktopCommand::Activate(_)
+        | DesktopCommand::Close(_)
+        | DesktopCommand::Minimise(_)
+        | DesktopCommand::Unminimise(_)
+        | DesktopCommand::Maximise(_)
+        | DesktopCommand::Unmaximise(_)
+        | DesktopCommand::Fullscreen { .. }
+        | DesktopCommand::Unfullscreen(_)
+        | DesktopCommand::SetMinimiseTarget { .. }
+        | DesktopCommand::ActivateWorkspace(_)
+        | DesktopCommand::DeactivateWorkspace(_)
+        | DesktopCommand::AssignWorkspace { .. }
+        | DesktopCommand::RemoveWorkspace(_)
+        | DesktopCommand::CreateWorkspace { .. }
+        | DesktopCommand::CommitWorkspaces
+        | DesktopCommand::ApplyOutputs(_)
+        | DesktopCommand::TestOutputs(_)
+        | DesktopCommand::CaptureOutput(_)
+        | DesktopCommand::CreateSpace { .. }
+        | DesktopCommand::SetShellRole { .. }
+        | DesktopCommand::PickSwitcher(_)
+        | DesktopCommand::CancelSwitcher
+        | DesktopCommand::Overview { .. }
+        | DesktopCommand::ShowDesktop(_)
+        | DesktopCommand::PickWindowMenu { .. }
+        | DesktopCommand::PickSplit(_)
+        | DesktopCommand::CancelSplit
+        | DesktopCommand::DivideSplit { .. }
+        | DesktopCommand::SetSpaceTargets { .. }
+        | DesktopCommand::SetNewSpaceTarget { .. }
+        | DesktopCommand::AnswerPermission { .. }
+        | DesktopCommand::AnswerTrial { .. } => Ok(()),
     }
 }
 

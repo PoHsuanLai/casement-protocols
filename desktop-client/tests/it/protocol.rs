@@ -7,7 +7,7 @@ use casement_protocols::vocab::{
 use desktop_client::capture::CaptureRequest;
 use desktop_client::output::OutputConfig;
 use desktop_client::{
-    AppKey, CommandKind, DesktopBackend, Rect, SpaceKey, SpaceTarget, requires_on,
+    AppKey, CommandRoute, DesktopBackend, Rect, SpaceKey, SpaceTarget, requires_on,
 };
 use desktop_client::{
     DesktopCommand, GroupKey, OutputName, Protocol, ProtocolSet, Supports, SurfaceKey, ToplevelKey,
@@ -78,17 +78,12 @@ fn toplevel_commands_need_the_wlr_manager_only() {
     let wlr = ProtocolSet::empty().with(Protocol::WlrForeignToplevelManagement);
     let list_only = ProtocolSet::empty().with(Protocol::ExtForeignToplevelList);
     for command in toplevel_commands() {
-        assert_eq!(
-            supports(&wlr, &command),
-            Supports::Yes,
-            "{:?}",
-            command.kind()
-        );
+        assert_eq!(supports(&wlr, &command), Supports::Yes, "{:?}", command);
         assert_eq!(
             supports(&list_only, &command),
             Supports::No,
             "{:?}",
-            command.kind()
+            command
         );
         assert_eq!(
             missing(&list_only, &command),
@@ -101,12 +96,7 @@ fn toplevel_commands_need_the_wlr_manager_only() {
 fn workspace_commands_need_ext_workspace() {
     let offered = ProtocolSet::empty().with(Protocol::ExtWorkspace);
     for command in workspace_commands() {
-        assert_eq!(
-            supports(&offered, &command),
-            Supports::Yes,
-            "{:?}",
-            command.kind()
-        );
+        assert_eq!(supports(&offered, &command), Supports::Yes, "{:?}", command);
         assert_eq!(supports(&ProtocolSet::empty(), &command), Supports::No);
     }
 }
@@ -283,16 +273,11 @@ fn quire_only() -> Vec<(DesktopCommand, Vec<Protocol>)> {
 #[test]
 fn quire_commands_need_exactly_their_quire_protocols() {
     for (command, needs) in quire_only() {
-        assert_eq!(requires(&command), needs.as_slice(), "{:?}", command.kind());
+        assert_eq!(requires(&command), needs.as_slice(), "{:?}", command);
         let offered = needs
             .iter()
             .fold(ProtocolSet::empty(), |set, p| set.with(*p));
-        assert_eq!(
-            supports(&offered, &command),
-            Supports::Yes,
-            "{:?}",
-            command.kind()
-        );
+        assert_eq!(supports(&offered, &command), Supports::Yes, "{:?}", command);
         assert_eq!(missing(&offered, &command), None);
         for dropped in &needs {
             let partial = needs
@@ -312,12 +297,7 @@ fn wlr_alone_cannot_do_what_only_quire_can() {
         Protocol::ExtForeignToplevelList,
     ]);
     for (command, _) in quire_only() {
-        assert_eq!(
-            supports(&wlr, &command),
-            Supports::No,
-            "{:?}",
-            command.kind()
-        );
+        assert_eq!(supports(&wlr, &command), Supports::No, "{:?}", command);
     }
 }
 
@@ -326,8 +306,7 @@ fn on_the_quire_arm_the_window_commands_go_to_quire_not_wlr() {
     let quire = offering(&[Protocol::QuireDesktop, Protocol::ExtForeignToplevelList]);
     let wlr_too = quire.clone().with(Protocol::WlrForeignToplevelManagement);
     for command in toplevel_commands() {
-        let kind = command.kind();
-        if kind == CommandKind::SetMinimiseTarget {
+        if command.route() == CommandRoute::MinimiseTarget {
             // The minimise target is the shell's: quire_shell_v1.
             assert_eq!(missing(&quire, &command), Some(Protocol::QuireShell));
             assert_eq!(
@@ -335,13 +314,13 @@ fn on_the_quire_arm_the_window_commands_go_to_quire_not_wlr() {
                 Supports::Yes
             );
         } else {
-            assert_eq!(supports(&quire, &command), Supports::Yes, "{kind:?}");
-            assert_eq!(supports(&wlr_too, &command), Supports::Yes, "{kind:?}");
+            assert_eq!(supports(&quire, &command), Supports::Yes, "{command:?}");
+            assert_eq!(supports(&wlr_too, &command), Supports::Yes, "{command:?}");
         }
         assert_eq!(
             requires_on(Some(DesktopBackend::Wlr), &command),
             &[Protocol::WlrForeignToplevelManagement],
-            "{kind:?} on the wlr arm"
+            "{command:?} on the wlr arm"
         );
     }
 }
@@ -364,7 +343,7 @@ fn quire_without_the_ext_list_falls_back_to_wlr_for_the_window_commands() {
 }
 
 #[test]
-fn every_command_has_a_distinct_kind_and_needs_something() {
+fn every_command_is_listed_once_and_needs_something() {
     let mut commands = toplevel_commands();
     commands.extend(workspace_commands());
     commands.push(DesktopCommand::ApplyOutputs(OutputConfig::new(vec![])));
@@ -373,15 +352,15 @@ fn every_command_has_a_distinct_kind_and_needs_something() {
         OutputName::new("x"),
     )));
     commands.extend(quire_only().into_iter().map(|(c, _)| c));
-    let mut kinds: Vec<CommandKind> = Vec::new();
+    let mut kinds = Vec::new();
     for command in &commands {
-        assert!(!requires(command).is_empty(), "{:?}", command.kind());
+        assert!(!requires(command).is_empty(), "{:?}", command);
         assert!(
-            !kinds.contains(&command.kind()),
+            !kinds.contains(&std::mem::discriminant(command)),
             "{:?} twice",
-            command.kind()
+            command
         );
-        kinds.push(command.kind());
+        kinds.push(std::mem::discriminant(command));
     }
     assert_eq!(kinds.len(), 46);
 }

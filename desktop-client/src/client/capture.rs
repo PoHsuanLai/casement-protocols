@@ -25,7 +25,7 @@ use super::wire::{Wire, raw};
 use crate::capture::{
     CaptureEvent, CaptureFailure, CapturePhase, CaptureRequest, CursorMode, ShmFormat,
 };
-use crate::command::CommandKind;
+use crate::command::CommandRoute;
 use crate::error::CommandError;
 use crate::event::DesktopEvent;
 use crate::geometry::{Rect, Size};
@@ -76,7 +76,7 @@ fn release(wire: &mut Wire, id: CaptureId) {
 pub(super) fn start(wire: &mut Wire, request: &CaptureRequest) -> Result<CaptureId, WireError> {
     let id = CaptureId::new(wire.mint());
     let unsupported = |needs| CommandError::Unsupported {
-        command: CommandKind::CaptureOutput,
+        route: CommandRoute::Capture,
         needs,
     };
     let output = wire

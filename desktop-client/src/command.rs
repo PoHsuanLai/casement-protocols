@@ -234,154 +234,81 @@ impl SpaceTarget {
     }
 }
 
-/// The variant of a [`DesktopCommand`] without its data, for errors and logs.
+/// Which protocol family carries a [`DesktopCommand`]: the one place the commands are sorted.
+/// [`requires_on`](crate::requires_on) and the wire client read it, and [`CommandError`](
+/// crate::CommandError) names it instead of the command.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[non_exhaustive]
-pub enum CommandKind {
-    /// [`DesktopCommand::Activate`].
-    Activate,
-    /// [`DesktopCommand::Close`].
-    Close,
-    /// [`DesktopCommand::Minimise`].
-    Minimise,
-    /// [`DesktopCommand::Unminimise`].
-    Unminimise,
-    /// [`DesktopCommand::Maximise`].
-    Maximise,
-    /// [`DesktopCommand::Unmaximise`].
-    Unmaximise,
-    /// [`DesktopCommand::Fullscreen`].
-    Fullscreen,
-    /// [`DesktopCommand::Unfullscreen`].
-    Unfullscreen,
-    /// [`DesktopCommand::SetMinimiseTarget`].
-    SetMinimiseTarget,
-    /// [`DesktopCommand::ActivateWorkspace`].
-    ActivateWorkspace,
-    /// [`DesktopCommand::DeactivateWorkspace`].
-    DeactivateWorkspace,
-    /// [`DesktopCommand::AssignWorkspace`].
-    AssignWorkspace,
-    /// [`DesktopCommand::RemoveWorkspace`].
-    RemoveWorkspace,
-    /// [`DesktopCommand::CreateWorkspace`].
-    CreateWorkspace,
-    /// [`DesktopCommand::CommitWorkspaces`].
-    CommitWorkspaces,
-    /// [`DesktopCommand::ApplyOutputs`].
-    ApplyOutputs,
-    /// [`DesktopCommand::TestOutputs`].
-    TestOutputs,
-    /// [`DesktopCommand::CaptureOutput`].
-    CaptureOutput,
-    /// [`DesktopCommand::Place`].
-    Place,
-    /// [`DesktopCommand::MoveToSpace`].
-    MoveToSpace,
-    /// [`DesktopCommand::AssignSpaces`].
-    AssignSpaces,
-    /// [`DesktopCommand::ClearMinimiseTarget`].
-    ClearMinimiseTarget,
-    /// [`DesktopCommand::ActivateSpace`].
-    ActivateSpace,
-    /// [`DesktopCommand::RemoveSpace`].
-    RemoveSpace,
-    /// [`DesktopCommand::MoveSpace`].
-    MoveSpace,
-    /// [`DesktopCommand::CreateSpace`].
-    CreateSpace,
-    /// [`DesktopCommand::ActivateApp`].
-    ActivateApp,
-    /// [`DesktopCommand::HideApp`].
-    HideApp,
-    /// [`DesktopCommand::UnhideApp`].
-    UnhideApp,
-    /// [`DesktopCommand::HideOtherApps`].
-    HideOtherApps,
-    /// [`DesktopCommand::QuitApp`].
-    QuitApp,
-    /// [`DesktopCommand::ForceQuitApp`].
-    ForceQuitApp,
-    /// [`DesktopCommand::ReopenApp`].
-    ReopenApp,
-    /// [`DesktopCommand::SetShellRole`].
-    SetShellRole,
-    /// [`DesktopCommand::PickSwitcher`].
-    PickSwitcher,
-    /// [`DesktopCommand::CancelSwitcher`].
-    CancelSwitcher,
-    /// [`DesktopCommand::Overview`].
-    Overview,
-    /// [`DesktopCommand::ShowDesktop`].
-    ShowDesktop,
-    /// [`DesktopCommand::PickWindowMenu`].
-    PickWindowMenu,
-    /// [`DesktopCommand::PickSplit`].
-    PickSplit,
-    /// [`DesktopCommand::CancelSplit`].
-    CancelSplit,
-    /// [`DesktopCommand::DivideSplit`].
-    DivideSplit,
-    /// [`DesktopCommand::SetSpaceTargets`].
-    SetSpaceTargets,
-    /// [`DesktopCommand::SetNewSpaceTarget`].
-    SetNewSpaceTarget,
-    /// [`DesktopCommand::AnswerPermission`].
-    AnswerPermission,
-    /// [`DesktopCommand::AnswerTrial`].
-    AnswerTrial,
+pub enum CommandRoute {
+    /// The plain window commands: `zwlr-foreign-toplevel-management` or, on the Quire arm,
+    /// `quire_desktop_window_v1`.
+    Toplevel,
+    /// The minimise target: the toplevel handle, or on the Quire arm `quire_shell_v1`.
+    MinimiseTarget,
+    /// `ext-workspace-v1`.
+    Workspace,
+    /// `wlr-output-management`.
+    Output,
+    /// `ext-image-copy-capture`.
+    Capture,
+    /// A window command only the Quire arm has.
+    QuireWindow,
+    /// An app or Space command, on `quire_desktop_manager_v1`.
+    QuireDesktop,
+    /// A shell command, on `quire_shell_v1`.
+    QuireShell,
 }
 
 impl DesktopCommand {
-    /// Which command this is.
-    pub fn kind(&self) -> CommandKind {
+    /// Which family carries this command. Every command is named here, with no wildcard, so a
+    /// new command cannot be added without choosing its route.
+    pub fn route(&self) -> CommandRoute {
         match self {
-            Self::Activate(_) => CommandKind::Activate,
-            Self::Close(_) => CommandKind::Close,
-            Self::Minimise(_) => CommandKind::Minimise,
-            Self::Unminimise(_) => CommandKind::Unminimise,
-            Self::Maximise(_) => CommandKind::Maximise,
-            Self::Unmaximise(_) => CommandKind::Unmaximise,
-            Self::Fullscreen { .. } => CommandKind::Fullscreen,
-            Self::Unfullscreen(_) => CommandKind::Unfullscreen,
-            Self::SetMinimiseTarget { .. } => CommandKind::SetMinimiseTarget,
-            Self::ActivateWorkspace(_) => CommandKind::ActivateWorkspace,
-            Self::DeactivateWorkspace(_) => CommandKind::DeactivateWorkspace,
-            Self::AssignWorkspace { .. } => CommandKind::AssignWorkspace,
-            Self::RemoveWorkspace(_) => CommandKind::RemoveWorkspace,
-            Self::CreateWorkspace { .. } => CommandKind::CreateWorkspace,
-            Self::CommitWorkspaces => CommandKind::CommitWorkspaces,
-            Self::ApplyOutputs(_) => CommandKind::ApplyOutputs,
-            Self::TestOutputs(_) => CommandKind::TestOutputs,
-            Self::CaptureOutput(_) => CommandKind::CaptureOutput,
-            Self::Place { .. } => CommandKind::Place,
-            Self::MoveToSpace { .. } => CommandKind::MoveToSpace,
-            Self::AssignSpaces { .. } => CommandKind::AssignSpaces,
-            Self::ClearMinimiseTarget(_) => CommandKind::ClearMinimiseTarget,
-            Self::ActivateSpace(_) => CommandKind::ActivateSpace,
-            Self::RemoveSpace(_) => CommandKind::RemoveSpace,
-            Self::MoveSpace { .. } => CommandKind::MoveSpace,
-            Self::CreateSpace { .. } => CommandKind::CreateSpace,
-            Self::ActivateApp(_) => CommandKind::ActivateApp,
-            Self::HideApp(_) => CommandKind::HideApp,
-            Self::UnhideApp(_) => CommandKind::UnhideApp,
-            Self::HideOtherApps(_) => CommandKind::HideOtherApps,
-            Self::QuitApp(_) => CommandKind::QuitApp,
-            Self::ForceQuitApp(_) => CommandKind::ForceQuitApp,
-            Self::ReopenApp(_) => CommandKind::ReopenApp,
-            Self::SetShellRole { .. } => CommandKind::SetShellRole,
-            Self::PickSwitcher(_) => CommandKind::PickSwitcher,
-            Self::CancelSwitcher => CommandKind::CancelSwitcher,
-            Self::Overview { .. } => CommandKind::Overview,
-            Self::ShowDesktop(_) => CommandKind::ShowDesktop,
-            Self::PickWindowMenu { .. } => CommandKind::PickWindowMenu,
-            Self::PickSplit(_) => CommandKind::PickSplit,
-            Self::CancelSplit => CommandKind::CancelSplit,
-            Self::DivideSplit { .. } => CommandKind::DivideSplit,
-            Self::SetSpaceTargets { .. } => CommandKind::SetSpaceTargets,
-            Self::SetNewSpaceTarget { .. } => CommandKind::SetNewSpaceTarget,
-            Self::AnswerPermission { .. } => CommandKind::AnswerPermission,
-            Self::AnswerTrial { .. } => CommandKind::AnswerTrial,
+            Self::Activate(_)
+            | Self::Close(_)
+            | Self::Minimise(_)
+            | Self::Unminimise(_)
+            | Self::Maximise(_)
+            | Self::Unmaximise(_)
+            | Self::Fullscreen { .. }
+            | Self::Unfullscreen(_) => CommandRoute::Toplevel,
+            Self::SetMinimiseTarget { .. } => CommandRoute::MinimiseTarget,
+            Self::ActivateWorkspace(_)
+            | Self::DeactivateWorkspace(_)
+            | Self::AssignWorkspace { .. }
+            | Self::RemoveWorkspace(_)
+            | Self::CreateWorkspace { .. }
+            | Self::CommitWorkspaces => CommandRoute::Workspace,
+            Self::ApplyOutputs(_) | Self::TestOutputs(_) => CommandRoute::Output,
+            Self::CaptureOutput(_) => CommandRoute::Capture,
+            Self::Place { .. } | Self::MoveToSpace { .. } | Self::AssignSpaces { .. } => {
+                CommandRoute::QuireWindow
+            }
+            Self::ActivateSpace(_)
+            | Self::RemoveSpace(_)
+            | Self::MoveSpace { .. }
+            | Self::CreateSpace { .. }
+            | Self::ActivateApp(_)
+            | Self::HideApp(_)
+            | Self::UnhideApp(_)
+            | Self::HideOtherApps(_)
+            | Self::QuitApp(_)
+            | Self::ForceQuitApp(_)
+            | Self::ReopenApp(_) => CommandRoute::QuireDesktop,
+            Self::ClearMinimiseTarget(_)
+            | Self::SetShellRole { .. }
+            | Self::PickSwitcher(_)
+            | Self::CancelSwitcher
+            | Self::Overview { .. }
+            | Self::ShowDesktop(_)
+            | Self::PickWindowMenu { .. }
+            | Self::PickSplit(_)
+            | Self::CancelSplit
+            | Self::DivideSplit { .. }
+            | Self::SetSpaceTargets { .. }
+            | Self::SetNewSpaceTarget { .. }
+            | Self::AnswerPermission { .. }
+            | Self::AnswerTrial { .. } => CommandRoute::QuireShell,
         }
     }
 }
