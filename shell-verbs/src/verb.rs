@@ -33,6 +33,8 @@ pub enum ShellVerb {
     ControlCenterToggle,
     /// Show the notification centre, or hide it when it is up.
     NotificationCenterToggle,
+    /// Open the launcher on emoji and symbols (the Mac's Character Viewer).
+    EmojiAndSymbols,
 }
 
 /// Every verb, in the order the table above names them.
@@ -52,6 +54,7 @@ pub const ALL: &[ShellVerb] = &[
     ShellVerb::SwitcherCancel,
     ShellVerb::ControlCenterToggle,
     ShellVerb::NotificationCenterToggle,
+    ShellVerb::EmojiAndSymbols,
 ];
 
 impl ShellVerb {
@@ -73,6 +76,8 @@ impl ShellVerb {
             Self::SwitcherCancel => &["switcher", "cancel"],
             Self::ControlCenterToggle => &["control-center", "toggle"],
             Self::NotificationCenterToggle => &["notifications", "toggle"],
+            // sill's own line for a standard action it carries out (`sill do <action>`).
+            Self::EmojiAndSymbols => &["do", "emoji-and-symbols"],
         }
     }
 
@@ -105,6 +110,7 @@ mod tests {
             ShellVerb::SwitcherCancel => 12,
             ShellVerb::ControlCenterToggle => 13,
             ShellVerb::NotificationCenterToggle => 14,
+            ShellVerb::EmojiAndSymbols => 15,
         }
     }
 
@@ -113,7 +119,7 @@ mod tests {
         let positions: Vec<usize> = ALL.iter().copied().map(position).collect();
         assert_eq!(positions, (0..positions.len()).collect::<Vec<_>>());
         // The match above has one arm per variant, so the last position is the variant count.
-        assert_eq!(position(ShellVerb::NotificationCenterToggle) + 1, ALL.len());
+        assert_eq!(position(ShellVerb::EmojiAndSymbols) + 1, ALL.len());
     }
 
     #[test]
