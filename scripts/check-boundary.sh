@@ -98,4 +98,16 @@ if grep -rnE '\bunsafe\b' desktop-client/src; then
   fail=1
 fi
 
+# 7. shell-verbs: no dependencies at all, and no unsafe.
+if [ -n "$(cargo tree -p shell-verbs --depth 1 -e normal,build --prefix none 2>/dev/null | awk 'NR > 1')" ]; then
+  echo "EDGE: shell-verbs has a dependency"
+  fail=1
+else
+  echo "edges hold: shell-verbs depends on nothing"
+fi
+if grep -rnE '\bunsafe\b' shell-verbs/src; then
+  echo "LEAK: unsafe in shell-verbs/src"
+  fail=1
+fi
+
 exit "$fail"

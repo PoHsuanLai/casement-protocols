@@ -172,7 +172,7 @@ holds the frozen interface as tables (every message with its arguments, every er
 
 ## 8. `desktop-client` (second package, `desktop-client/`)
 
-The workspace has two members: `casement-protocols` (the repo root) and `desktop-client`. The
+The workspace has three members: `casement-protocols` (the repo root), `desktop-client` and `shell-verbs` (section 9). The
 second is the one typed Wayland desktop client (amendment A3 of the P1 library plan): the
 standard wlroots-style protocols plus the Quire arm (`quire_desktop_v1`, `quire_shell_v1`,
 filled at P2-Z-dc). It is a separate package so a consumer that wants only toplevels and
@@ -290,3 +290,15 @@ no state: the shell keeps its one open question by id) and `DesktopCommand::Answ
 answer }` (46 command kinds; the shell is bound at `1..=6`; the command is refused with `NotBound`
 on a compositor that serves less than version 6). Vocab: `TrialAnswer { Keep, Revert }`,
 `TrialId(u32)`.
+
+## 9. `shell-verbs` (third package, `shell-verbs/`)
+
+The workspace's third member is the pure crate both the compositor and the shell take for the
+verbs between them: `ShellVerb` (lock, next window, dock auto-hide, launcher, power menu, Force
+Quit, the three screenshots, the four switcher steps, control centre, notification centre),
+`ALL`, `ShellVerb::argv` (the words after the shell's program name) and `ShellVerb::parse` (its
+exact inverse). It has no dependencies at all and is not `#[non_exhaustive]`: a new verb is a
+compile error at every match site on both sides. Mission Control, Spaces, full screen and
+window placement are the compositor's own commands and are not verbs. casement's keymap rows
+hold a `ShellVerb`; the shell's command line parses into one. The unit tests in the crate pin
+the round trip, distinct argvs and that `ALL` covers every variant.

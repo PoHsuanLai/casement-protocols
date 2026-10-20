@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = [".", "desktop-client"]
+members = [".", "desktop-client", "shell-verbs"]
 
 [workspace.package]
 version = "0.1.0"
