@@ -12,8 +12,8 @@ use casement_protocols::vocab::{
 };
 use desktop_client::quire::{
     AppChange, AppEvent, DisplayTrial, Lease, Linker, MenuSource, PermissionAsk, QuireEvent,
-    ShellEvent, SpaceChange, SpaceEvent, SpacePlace, WindowChange, WindowEvent, WindowGeometry,
-    WindowObject,
+    RevealOutput, ShellEvent, SpaceChange, SpaceEvent, SpacePlace, WindowChange, WindowEvent,
+    WindowGeometry, WindowObject,
 };
 use desktop_client::toplevel::{Announcement, ToplevelChange, ToplevelEvent, ToplevelFlag};
 use desktop_client::workspace::{WorkspaceChange, WorkspaceEvent, WorkspaceFlag};
@@ -794,25 +794,34 @@ fn the_overview_layout_is_applied_at_its_done() {
 }
 
 #[test]
-fn reveals_are_per_edge_and_hidden_by_default() {
+fn reveals_are_per_output_and_edge_and_hidden_by_default() {
+    let reveal = |output: RevealOutput, edge, shown| {
+        shell(ShellEvent::Reveal {
+            output,
+            edge,
+            shown,
+        })
+    };
+    let (one, two) = (OutputName::new("DP-1"), OutputName::new("DP-2"));
+    let named = |output: &OutputName| RevealOutput::Named(output.clone());
     let state = run([
-        shell(ShellEvent::Reveal {
-            edge: ScreenEdge::Top,
-            shown: Shown::Shown,
-        }),
-        shell(ShellEvent::Reveal {
-            edge: ScreenEdge::Bottom,
-            shown: Shown::Shown,
-        }),
-        shell(ShellEvent::Reveal {
-            edge: ScreenEdge::Top,
-            shown: Shown::Hidden,
-        }),
+        reveal(named(&one), ScreenEdge::Top, Shown::Shown),
+        reveal(named(&one), ScreenEdge::Bottom, Shown::Shown),
+        reveal(named(&one), ScreenEdge::Top, Shown::Hidden),
+        reveal(named(&two), ScreenEdge::Top, Shown::Shown),
     ]);
     let reveals = &state.quire.shell().reveals;
-    assert_eq!(reveals.at(ScreenEdge::Top), Shown::Hidden);
-    assert_eq!(reveals.at(ScreenEdge::Bottom), Shown::Shown);
-    assert_eq!(reveals.at(ScreenEdge::Left), Shown::Hidden);
+    assert_eq!(reveals.at(&one, ScreenEdge::Top), Shown::Hidden);
+    assert_eq!(reveals.at(&one, ScreenEdge::Bottom), Shown::Shown);
+    assert_eq!(reveals.at(&one, ScreenEdge::Left), Shown::Hidden);
+    assert_eq!(reveals.at(&two, ScreenEdge::Top), Shown::Shown);
+    assert_eq!(reveals.at(&two, ScreenEdge::Bottom), Shown::Hidden);
+
+    // An older compositor names no output: every output reads it.
+    let state = run([reveal(RevealOutput::Unnamed, ScreenEdge::Top, Shown::Shown)]);
+    let reveals = &state.quire.shell().reveals;
+    assert_eq!(reveals.at(&one, ScreenEdge::Top), Shown::Shown);
+    assert_eq!(reveals.at(&two, ScreenEdge::Top), Shown::Shown);
 }
 
 #[test]

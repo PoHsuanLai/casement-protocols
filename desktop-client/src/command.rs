@@ -8,8 +8,8 @@ use crate::keys::{
 use crate::names::{OutputName, SpaceId, ToplevelIdentifier};
 use crate::output::OutputConfig;
 use casement_protocols::vocab::{
-    Answer, AskId, Assign, OverviewMode, PlaceTarget, ShellRole, Toggle, TrialAnswer, TrialId,
-    WindowEntry,
+    Answer, AskId, Assign, FullScreenBar, Motion, OverviewMode, PlaceTarget, ShellRole, Toggle,
+    TrialAnswer, TrialId, WindowEntry,
 };
 
 /// A request to the compositor. Targets are keys from [`crate::DesktopState`].
@@ -215,6 +215,14 @@ pub enum DesktopCommand {
         /// What the person said.
         answer: TrialAnswer,
     },
+    /// What the bar does in full screen: slides in at the top edge, or stays up with full-screen
+    /// windows sized below it (version 7). Send it after binding and whenever the setting
+    /// changes. Quire arm, shell role.
+    SetFullScreenBar(FullScreenBar),
+    /// How much motion the person allows; reduced makes the full-screen bar and dock cross-fade
+    /// (version 7). Send it after binding and whenever the setting changes. Quire arm, shell
+    /// role.
+    SetMotion(Motion),
 }
 
 /// A place a dragged window can be dropped on a Space.
@@ -308,7 +316,9 @@ impl DesktopCommand {
             | Self::SetSpaceTargets { .. }
             | Self::SetNewSpaceTarget { .. }
             | Self::AnswerPermission { .. }
-            | Self::AnswerTrial { .. } => CommandRoute::QuireShell,
+            | Self::AnswerTrial { .. }
+            | Self::SetFullScreenBar(_)
+            | Self::SetMotion(_) => CommandRoute::QuireShell,
         }
     }
 }

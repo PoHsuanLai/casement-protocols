@@ -247,6 +247,26 @@ pub(super) fn send(wire: &Wire, command: DesktopCommand) -> Result<(), CommandEr
             }
             shell.displays_trial_answer(trial.get(), generated(answer)?);
         }
+        DesktopCommand::SetFullScreenBar(mode) => {
+            let shell = shell(wire, route)?;
+            if shell.version() < 7 {
+                return Err(CommandError::NotBound {
+                    route,
+                    needs: Protocol::QuireShell,
+                });
+            }
+            shell.set_full_screen_bar(generated(mode)?);
+        }
+        DesktopCommand::SetMotion(motion) => {
+            let shell = shell(wire, route)?;
+            if shell.version() < 7 {
+                return Err(CommandError::NotBound {
+                    route,
+                    needs: Protocol::QuireShell,
+                });
+            }
+            shell.set_motion(generated(motion)?);
+        }
         // Another family's: `carries` keeps these out of here.
         DesktopCommand::ActivateWorkspace(_)
         | DesktopCommand::DeactivateWorkspace(_)

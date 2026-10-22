@@ -92,7 +92,9 @@ pub fn check_targets(state: &DesktopState, command: &DesktopCommand) -> Result<(
         | DesktopCommand::SetSpaceTargets { .. }
         | DesktopCommand::SetNewSpaceTarget { .. }
         | DesktopCommand::AnswerPermission { .. }
-        | DesktopCommand::AnswerTrial { .. } => Ok(()),
+        | DesktopCommand::AnswerTrial { .. }
+        | DesktopCommand::SetFullScreenBar(_)
+        | DesktopCommand::SetMotion(_) => Ok(()),
     }
 }
 

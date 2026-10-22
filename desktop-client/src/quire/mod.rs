@@ -34,7 +34,8 @@ pub use lifecycle::Lifecycle;
 pub use link::{Linker, WindowObject};
 pub use set::{Active, Quire};
 pub use shell::{
-    Overview, OverviewSlot, OverviewSpaceSlot, Reveals, Shell, ShellEvent, SplitChoice, Switcher,
+    Overview, OverviewSlot, OverviewSpaceSlot, RevealOutput, Reveals, Shell, ShellEvent,
+    SplitChoice, Switcher,
 };
 pub use space::{QuireSpace, SpaceChange, SpaceEvent};
 pub use targets::check_targets;

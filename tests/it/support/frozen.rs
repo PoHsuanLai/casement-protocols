@@ -122,6 +122,8 @@ pub const INTERFACES: &[(&str, &str, &[&str], &[&str])] = &[
             "space_target_new(output: wl_output, x: int, y: int, width: uint, height: uint)",
             "permission_answer(ask: uint, answer: uint<answer>)",
             "displays_trial_answer(trial: uint, answer: uint<trial_answer>)",
+            "set_full_screen_bar(mode: uint<full_screen_bar>)",
+            "set_motion(motion: uint<motion>)",
         ],
         &[
             "modifiers(surface: wl_surface, mods: uint<mac_mods>)",
@@ -153,6 +155,7 @@ pub const INTERFACES: &[(&str, &str, &[&str], &[&str])] = &[
             "permission_withdraw(ask: uint)",
             "displays_trial(trial: uint, seconds: uint)",
             "displays_trial_end(trial: uint)",
+            "reveal_on_output(output: wl_output, edge: uint<screen_edge>, shown: uint<shown>)",
         ],
     ),
     (

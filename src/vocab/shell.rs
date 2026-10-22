@@ -82,6 +82,26 @@ wire_enum! {
 }
 
 wire_enum! {
+    /// What the bar does in full screen (`quire_shell_v1.full_screen_bar`, version 7).
+    FullScreenBar {
+        /// Hidden; it slides in when the pointer rests at the top edge.
+        Reveal = 0,
+        /// It stays up and the full-screen window is sized below it.
+        Keep = 1,
+    }
+}
+
+wire_enum! {
+    /// How much motion the person allows (`quire_shell_v1.motion`, version 7).
+    Motion {
+        /// Slides and zooms.
+        Full = 0,
+        /// Cross-fades in place of slides.
+        Reduced = 1,
+    }
+}
+
+wire_enum! {
     /// Which overview (`quire_shell_v1.overview_mode`).
     OverviewMode {
         /// Every window of every app.

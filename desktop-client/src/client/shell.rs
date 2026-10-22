@@ -11,7 +11,7 @@ use crate::event::DesktopEvent;
 use crate::geometry::{Point, Rect};
 use crate::keys::SurfaceKey;
 use crate::names::{AppId, SpaceId, ToplevelIdentifier};
-use crate::quire::{DisplayTrial, PermissionAsk, QuireEvent, ShellEvent};
+use crate::quire::{DisplayTrial, PermissionAsk, QuireEvent, RevealOutput, ShellEvent};
 
 /// The key the caller registered `surface` under, if it did.
 fn key_of(wire: &Wire, surface: &WlSurface) -> Option<SurfaceKey> {
@@ -69,6 +69,16 @@ fn translate(wire: &Wire, event: quire_shell_v1::Event) -> Option<ShellEvent> {
         Event::OverviewDone => ShellEvent::OverviewDone,
         Event::HotCorner { corner } => ShellEvent::HotCorner(vocab(corner)?),
         Event::Reveal { edge, shown } => ShellEvent::Reveal {
+            output: RevealOutput::Unnamed,
+            edge: vocab(edge)?,
+            shown: vocab(shown)?,
+        },
+        Event::RevealOnOutput {
+            output,
+            edge,
+            shown,
+        } => ShellEvent::Reveal {
+            output: RevealOutput::Named(wire.output_name(&output)?),
             edge: vocab(edge)?,
             shown: vocab(shown)?,
         },

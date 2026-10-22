@@ -27,8 +27,8 @@ pub use privilege::{Answer, AskId, Memory, Power, SubjectKind};
 pub use receipt::{ReceiptCounts, ReceiptDigest, ReceiptItem, receipt_counts, receipt_digest};
 pub use sensitive::SensitivityLevel;
 pub use shell::{
-    Corner, DragOutcome, KeyGesture, OverviewMode, OverviewState, ScreenEdge, ShellRole, Shown,
-    SplitSide, WindowEntries, WindowEntry,
+    Corner, DragOutcome, FullScreenBar, KeyGesture, Motion, OverviewMode, OverviewState,
+    ScreenEdge, ShellRole, Shown, SplitSide, WindowEntries, WindowEntry,
 };
 pub use space::{SpaceActivity, SpaceKind};
 pub use trial::{TrialAnswer, TrialId};

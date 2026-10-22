@@ -52,7 +52,7 @@ pub(super) fn bind_all(
         wire.handles.quire_manager = Some(globals.bind(qh, 1..=2, ())?);
     }
     if offered.contains(Protocol::QuireShell) && wire.config.shell == ShellBinding::Bind {
-        wire.handles.quire_shell = Some(globals.bind(qh, 1..=6, ())?);
+        wire.handles.quire_shell = Some(globals.bind(qh, 1..=7, ())?);
     }
     if offered.contains(Protocol::ExtWorkspace) {
         wire.handles.workspace_manager = Some(globals.bind(qh, 1..=1, ())?);

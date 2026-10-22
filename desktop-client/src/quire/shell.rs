@@ -77,6 +77,8 @@ pub enum ShellEvent {
     HotCorner(Corner),
     /// A full-screen edge reveal changed.
     Reveal {
+        /// The output it happened on, when the compositor says (version 7).
+        output: RevealOutput,
         /// The edge.
         edge: ScreenEdge,
         /// Slid in or away.
@@ -384,14 +386,28 @@ impl Overview {
     }
 }
 
-/// Which edges have their bar or dock revealed.
+/// The output a reveal happened on: a version 7 compositor names it, an older one does not.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub enum RevealOutput {
+    /// This output.
+    Named(OutputName),
+    /// Not said (`reveal` before version 7): the shell decides which output it means.
+    Unnamed,
+}
+
+/// Which edges of which outputs have their bar or dock revealed.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
-pub struct Reveals(pub(crate) BTreeMap<ScreenEdge, Shown>);
+pub struct Reveals(pub(crate) BTreeMap<(RevealOutput, ScreenEdge), Shown>);
 
 impl Reveals {
-    /// Whether `edge` is revealed; hidden until the compositor says otherwise.
-    pub fn at(&self, edge: ScreenEdge) -> Shown {
-        self.0.get(&edge).copied().unwrap_or(Shown::Hidden)
+    /// Whether `edge` of `output` is revealed: what the compositor said for that output, else
+    /// for no output in particular; hidden until it says otherwise.
+    pub fn at(&self, output: &OutputName, edge: ScreenEdge) -> Shown {
+        self.0
+            .get(&(RevealOutput::Named(output.clone()), edge))
+            .or_else(|| self.0.get(&(RevealOutput::Unnamed, edge)))
+            .copied()
+            .unwrap_or(Shown::Hidden)
     }
 }
 
@@ -493,8 +509,12 @@ pub(super) fn reduce_shell(mut shell: Shell, event: ShellEvent) -> Shell {
             shell.overview.slots = std::mem::take(&mut shell.overview.pending_slots);
             shell.overview.spaces = std::mem::take(&mut shell.overview.pending_spaces);
         }
-        ShellEvent::Reveal { edge, shown } => {
-            shell.reveals.0.insert(edge, shown);
+        ShellEvent::Reveal {
+            output,
+            edge,
+            shown,
+        } => {
+            shell.reveals.0.insert((output, edge), shown);
         }
         ShellEvent::SplitChoose { first, side } => {
             shell.split_choice = Some(SplitChoice {
