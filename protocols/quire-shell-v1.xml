@@ -49,9 +49,14 @@
     limit, after which the old setup returns), and the error `answered_too_soon` for an answer that comes
     before the question could have been read; every message and entry it adds says `since="6"`. A shell
     that bound an older version is never asked, and the change is reverted when the time runs out.
+    Version 7 adds, again after everything older, the shell choosing whether the bar stays up in full
+    screen, the shell telling the compositor how much motion the person allows, and `reveal_on_output`,
+    which names the output an edge reveal happened on; every message and entry it adds says `since="7"`.
+    A shell that bound version 7 receives `reveal_on_output` in place of `reveal`; one that bound an older
+    version receives `reveal` as before, gets the reveal in every full screen, and gets full motion.
   </description>
 
-  <interface name="quire_shell_v1" version="6">
+  <interface name="quire_shell_v1" version="7">
     <description summary="the shell's global">
       Advertised on Shell connections only.
 
@@ -59,7 +64,7 @@
     </description>
 
     <enum name="error">
-      <entry name="role_taken" value="0" summary="another surface already has that role"/>
+      <entry name="role_taken" value="0" summary="another surface already has that role (on that output, for bar and dock)"/>
       <entry name="bad_surface" value="1" summary="the surface is not a layer surface of this client"/>
       <entry name="unknown_toplevel" value="2" summary="no toplevel has the given identifier"/>
       <entry name="bad_target" value="3" since="2" summary="a Space target rectangle has no size"/>
@@ -231,7 +236,10 @@
     <request name="set_role">
       <description summary="give a shell surface its role">
         `surface` must be a layer surface of this client; anything else raises `bad_surface`.
-        A role held by another live surface raises `role_taken`.
+        A role held by another live surface raises `role_taken`, except that `bar` and `dock` are held
+        once per output: each output has its own bar and its own dock (the output the layer surface was
+        made for, or the one the compositor put it on), and only a second bar or dock on the same output
+        raises `role_taken`.
       </description>
       <arg name="surface" type="object" interface="wl_surface"/>
       <arg name="role" type="uint" enum="shell_role"/>
@@ -703,6 +711,50 @@
         trial is ignored.
       </description>
       <arg name="trial" type="uint"/>
+    </event>
+
+    <enum name="full_screen_bar" since="7">
+      <description summary="what the bar does in full screen"/>
+      <entry name="reveal" value="0" summary="hidden; it slides in when the pointer rests at the top edge"/>
+      <entry name="keep" value="1" summary="it stays up and the full-screen window is sized below it"/>
+    </enum>
+
+    <enum name="motion" since="7">
+      <description summary="how much motion the person allows"/>
+      <entry name="full" value="0" summary="slides and zooms"/>
+      <entry name="reduced" value="1" summary="cross-fades in place of slides"/>
+    </enum>
+
+    <request name="set_full_screen_bar" since="7">
+      <description summary="choose what the bar does in full screen">
+        With `reveal` (the start state) the bar is behind a full-screen window and slides in over it when
+        the pointer rests at the top edge, as `reveal_on_output` tells. With `keep` the bar stays up on
+        every output and a full-screen window is sized to the output less the bar's exclusive zone; no
+        top-edge reveal happens. The dock still reveals at the bottom edge either way. It applies to every
+        output and to full-screen windows already shown (they are configured again). The shell sends it
+        after binding and whenever the person changes the setting; the last one wins.
+      </description>
+      <arg name="mode" type="uint" enum="full_screen_bar"/>
+    </request>
+
+    <request name="set_motion" since="7">
+      <description summary="say how much motion the person allows">
+        With `reduced`, the compositor's own moves that have a quieter form use it: the bar and the dock
+        cross-fade in place of sliding in full screen. The start state is `full`. The shell sends it after
+        binding and whenever the person changes the setting; the last one wins.
+      </description>
+      <arg name="motion" type="uint" enum="motion"/>
+    </request>
+
+    <event name="reveal_on_output" since="7">
+      <description summary="an edge reveal changed on an output">
+        In full screen on `output`, the bar or the dock of that output slides in from its edge (`shown`,
+        sent as the slide in starts), or has slid away (`hidden`, sent when the slide away has ended, or at
+        once when the full screen ends). Sent in place of `reveal` to a shell that bound version 7.
+      </description>
+      <arg name="output" type="object" interface="wl_output"/>
+      <arg name="edge" type="uint" enum="screen_edge"/>
+      <arg name="shown" type="uint" enum="shown"/>
     </event>
   </interface>
 </protocol>
